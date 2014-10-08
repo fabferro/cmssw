@@ -189,25 +189,22 @@ Old faulty blade structure -->
     <rSolid name="PixelForwardBladeBaseTrap2"/>
     <Translation x="0." y="-[ModuleBoxY]/2.-[ModuleTrap2COM]" z="0."/>
   </UnionSolid>
-<!--
   <UnionSolid name="PixelForwardBladeBase4">
     <rSolid name="PixelForwardBladeBaseInt"/>
     <rSolid name="PixelForwardBladeBaseTrap2"/>
     <Translation x="0." y="-[ModuleBoxY]/2.-[ModuleTrap2COM]" z="0."/>
   </UnionSolid>
--->
   <UnionSolid name="PixelForwardBlade3">
     <rSolid name="PixelForwardBladeInt"/>
     <rSolid name="PixelForwardBladeTrap2"/>
     <Translation x="0." y="-[ModuleBoxY]/2.-[ModuleTrap2COM]" z="0."/>
   </UnionSolid>
-<!--
   <UnionSolid name="PixelForwardBlade4">
     <rSolid name="PixelForwardBladeInt"/>
     <rSolid name="PixelForwardBladeTrap2"/>
     <Translation x="0." y="-[ModuleBoxY]/2.-[ModuleTrap2COM]" z="0."/>
   </UnionSolid>
--->
+
   <Box name="PixelForwardModule"        dx="[ModuleW]/2"     dy="[ModuleL]/2" 
                                         dz="[ModuleT]/2" />
   <Box name="PixelForwardWafer"         dx="[WaferW]/2"     dy="[WaferL]/2" 
@@ -232,22 +229,18 @@ Old faulty blade structure -->
   <rSolid name="PixelForwardBlade3"/>
   <rMaterial name="materials:Air"/>
  </LogicalPart>
-<!--
  <LogicalPart name="PixelForwardBlade4" category="unspecified">
   <rSolid name="PixelForwardBlade4"/>
   <rMaterial name="materials:Air"/>
  </LogicalPart>
--->
  <LogicalPart name="PixelForwardBladeBase3" category="unspecified">
   <rSolid name="PixelForwardBladeBase3"/>
   <rMaterial name="materials:Air"/>
  </LogicalPart>
-<!--
  <LogicalPart name="PixelForwardBladeBase4" category="unspecified">
   <rSolid name="PixelForwardBladeBase4"/>
   <rMaterial name="materials:Air"/>
  </LogicalPart>
--->
  <!-- LogicalPart name="TPGBladeBase" category="support">
   <rSolid name="TPGBladeBase"/>
   <rMaterial name="materials:FPix_TPG"/>
@@ -313,37 +306,31 @@ Old faulty blade structure -->
   <rChild name="pixfwdPilotBlade:PixelForwardBladeBase3"/>
   <Translation x="0"  y="0"  z="0" />
  </PosPart>
-<!--
  <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardBlade4"/>
   <rChild name="pixfwdPilotBlade:PixelForwardBladeBase4"/>
   <Translation x="0"  y="0"  z="0" />
  </PosPart>
--->
  <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardBladeBase3"/>
   <rChild name="pixfwdPilotBlade:TPGBladeBase1"/>
   <Translation x="0"  y="0"  z="0" />
  </PosPart>
-<!--
  <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardBladeBase4"/>
   <rChild name="pixfwdPilotBlade:TPGBladeBase1"/>
   <Translation x="0"  y="0"  z="0" />
  </PosPart>
--->
  <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardBladeBase3"/>
   <rChild name="pixfwdPilotBlade:CarbonFiberSkin1"/>
   <Translation x="0"  y="0"  z="[TPGBladeBaseT]/2+[CarbonFiberSkinT]/2" />
  </PosPart>
-<!--
  <PosPart copyNumber="2">
   <rParent name="pixfwdPilotBlade:PixelForwardBladeBase4"/>
   <rChild name="pixfwdPilotBlade:CarbonFiberSkin1"/>
   <Translation x="0"  y="0"  z="-[TPGBladeBaseT]/2-[CarbonFiberSkinT]/2" />
  </PosPart>
--->
  <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardBlade3"/>
   <rChild name="pixfwdPilotBlade:PixelForwardModule1"/>
@@ -351,15 +338,14 @@ Old faulty blade structure -->
   <Translation x="0"  y="-[ModuleYOffset]"  z="[ModuleZ]" />
   <rRotation name="pixfwdPilotBlade:R100C"/>
  </PosPart>
-<!--
  <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardBlade4"/>
   <rChild name="pixfwdPilotBlade:PixelForwardModule1"/>
-
+  <!-- <Translation x="-[ModuleX]" y="[ModuleY]" z="-[ModuleZ]" /> -->
   <Translation x="0" y="-[ModuleYOffset]" z="-[ModuleZ]" />
   <rRotation name="pixfwdPilotBlade:R100A"/>
  </PosPart>
--->
+
  <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardModule1"/>
   <rChild name="pixfwdPilotBlade:PixelForwardWafer1"/>
@@ -382,6 +368,7 @@ Old faulty blade structure -->
   <rChild name="pixfwdPilotBlade:PixelForwardAdhesiveFilm"/>
   <Translation x="0"  y="0"  z="-[ModuleT]/2+[GlueT]+[ROChipT]+[BumpBondT]+[WaferT]+[GlueT]/2" />
  </PosPart>
+ 
 <PosPart copyNumber="1">
   <rParent name="pixfwdPilotBlade:PixelForwardModule1"/>
   <rChild name="pixfwdPilotBlade:PixelForwardHDI"/>

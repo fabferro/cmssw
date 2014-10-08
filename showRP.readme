@@ -1,0 +1,2 @@
+cmsRun Fireworks/Geometry/python/dumpRPGeometry_cfg.py
+cmsShow -c $CMSSW_RELEASE_BASE/src/Fireworks/Core/macros/simGeo.fwc --sim-geom-file cmsSimGeom-RP.root

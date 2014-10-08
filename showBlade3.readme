@@ -1,0 +1,3 @@
+cmsRun Fireworks/Geometry/python/dumpVuoto_e_pilot_Geometry_cfg.py 
+cmsShow -c showBlade3.fwc --sim-geom-file cmsSimGeom-Pilot.root
+

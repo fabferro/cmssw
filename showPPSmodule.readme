@@ -1,0 +1,2 @@
+cmsRun Fireworks/Geometry/python/dumpVuoto_e_PPS_Geometry_cfg.py
+cmsShow -c showPPSEnvelop.fwc --sim-geom-file cmsSimGeom-PPSmodule.root

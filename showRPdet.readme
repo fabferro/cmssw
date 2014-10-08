@@ -1,0 +1,4 @@
+
+cmsRun Fireworks/Geometry/python/dumpRPdetGeometry_cfg.py
+cmsShow -c showRPBoxes.fwc --sim-geom-file cmsSimGeom-RPdet.root
+
