@@ -10,9 +10,9 @@ Author: F.Ferro - INFN Genova
 
 <ConstantsSection label="PPSTrackerModule.xml" eval="true">
 
-<Constant name="EnvelopL" value="60*mm"/>
-<Constant name="EnvelopW" value="86*mm"/>     <!-- questi 3 da modificare -->
-<Constant name="EnvelopT" value="10*mm"/>
+<Constant name="EnvelopL" value="57*mm"/>
+<Constant name="EnvelopW" value="86*mm"/>     <!-- CE7+TPG+2GlueLayers -->
+<Constant name="EnvelopT" value="1.96*mm"/>
 
 <Constant name="CE7L1" value="57*mm-24*mm"/>
 <Constant name="CE7W1" value="86*mm"/>     
@@ -51,6 +51,8 @@ Author: F.Ferro - INFN Genova
 
  <Constant name="GlueT"              value="0.050*mm"/>
 
+<!-- <Constant name="RotAngle"              value="18.4*deg"/> -->
+
 
 <!-- <Constant name="ROChipL"            value="8.005*mm"/> -->   <!-- Readout chip length -->
 <!-- <Constant name="ROChipW"            value="10.735*mm"/>   -->  <!-- Readout chip width -->
@@ -65,8 +67,26 @@ Author: F.Ferro - INFN Genova
 <SolidSection label="PPSTrackerModule.xml">
 
 
- <Box name="Envelop"              dx="[EnvelopW]/2."   dy="[EnvelopL]/2."
-                                           dz="[EnvelopT]/2." />
+ <Box name="Envelop1"              dx="[EnvelopW]/2."   dy="[EnvelopL]/2."    dz="[EnvelopT]/2." /><!--CE7+TP+2GlueLayers envelop  -->
+                                           
+<Box name="Envelop2"              dx="[HybridW1]/2."   dy="[HybridL1]/2.+[HybridL2]/2.+[TPGvsROCoffset]/2."  dz="[ROChipT]/2.+[BumpBondT]/2." /> <!-- ROC + a part of Hybrid envelop  -->   
+                                           
+<Box name="Envelop3"              dx="[HybridW1]/2."   dy="[HybridL1]/2.+[HybridL2]/2.+[TPGvsROCoffset]/2.+[ROCvsWaferoffset]/2."   dz="[WaferT]/2." /> <!-- sensor + a part of hybrid envelop  -->   
+                                          
+
+<UnionSolid name="Envelop4">
+  <rSolid name="Envelop1"/>
+    <rSolid name="Envelop2"/>
+    <Translation x="0." y="[EnvelopL]/2.-[HybridL1]/2.-[HybridL2]/2.-[TPGvsROCoffset]/2." z="[EnvelopT]/2.+[ROChipT]/2.+[BumpBondT]/2."/>
+  </UnionSolid>
+<UnionSolid name="Envelop">
+  <rSolid name="Envelop4"/>
+    <rSolid name="Envelop3"/>
+    <Translation x="0." y="[EnvelopL]/2.-[HybridL1]/2.-[HybridL2]/2.-[TPGvsROCoffset]/2.-[ROCvsWaferoffset]/2." z="[EnvelopT]/2.+[ROChipT]+[BumpBondT]+[WaferT]/2."/>
+  </UnionSolid>
+
+
+
  <Box name="CE7Plate1"              dx="[CE7W1]/2."   dy="[CE7L1]/2."
                                            dz="[CE7T]/2." />
  <Box name="CE7Plate2"              dx="[CE7W2]/2."   dy="[CE7L2]/2."
@@ -229,15 +249,21 @@ Author: F.Ferro - INFN Genova
 
 
 <!--
+
 <RotationSection label="PPSTrackerModule.xml">
-  <Rotation name="R100A" thetaX="90*deg"  phiX="180*deg+[WedgeAngle2]" 
-                         thetaY="90*deg"  phiY="90*deg+[WedgeAngle2]" 
-                         thetaZ="180*deg" phiZ="0*deg"/>
-  <Rotation name="R100C" thetaX="90*deg"  phiX="-[WedgeAngle2]" 
-                         thetaY="90*deg"  phiY="90*deg-[WedgeAngle2]" 
-                         thetaZ="0*deg"   phiZ="0*deg"/>
+  <Rotation name="ModuleROTATION" thetaX="90*deg"  phiX="0*deg" 
+                         thetaY="90*deg-[RotAngle]"  phiY="90*deg" 
+                         thetaZ="-[RotAngle]" phiZ="90*deg"/> --> <!-- rotation of RotAngle around x axis -->
+
+ <!--
+  <Rotation name="ModuleROTATIONmirror" thetaX="90*deg"  phiX="180*deg" 
+                         thetaY="90*deg-[RotAngle]"  phiY="90*deg" 
+                         thetaZ="180*deg-[RotAngle]" phiZ="90*deg"/>  
+
  </RotationSection>
+
 -->
+
 
 <PosPartSection label="PPSTrackerModule.xml">
 
