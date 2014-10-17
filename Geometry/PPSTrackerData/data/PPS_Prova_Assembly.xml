@@ -6,7 +6,9 @@
       <Constant name="RotAngle"              value="18.4*deg"/>
 
 <Constant name="FullModuleThickness"   value="[PPSTrackerModule:EnvelopT]+[PPSTrackerModule:ROChipT]+[PPSTrackerModule:BumpBondT]+[PPSTrackerModule:WaferT]" />
-<Constant name="ModuleOffset"   value="[FullModuleThickness]*cos([RotAngle])" />
+<Constant name="ModuleOffset"   value="([FullModuleThickness]+[PPSTrackerModule:ROChipT]+[PPSTrackerModule:BumpBondT])*sin([RotAngle])" />
+
+<!-- offset to align the sensors:  www.ge.infn.it/~ferro/CMS/PPS_offset_piani.pdf -->
     </ConstantsSection>
   
 
@@ -22,7 +24,7 @@
 
     </RotationSection>
 
-< da finire  />
+
 
     <PosPartSection label="PPS_Prova_Assembly.xml">
 
@@ -58,7 +60,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="0*mm" z="30*mm"/>
+            <Translation x="0*mm" y="-[ModuleOffset]" z="30*mm"/>
             <rRotation name="ModuleROTATIONmirror"/>
 
         </PosPart>
@@ -76,30 +78,12 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="0*mm" z="50*mm"/>
+            <Translation x="0*mm" y="-[ModuleOffset]" z="50*mm"/>
             <rRotation name="ModuleROTATIONmirror"/>
 
         </PosPart>
 
 
 
-
-<!--
-        <PosPart copyNumber="1">
-            <rParent name="TotemRPGlobal:OTOTEM"/>
-            <rChild name="RP_220_Left_Station:RP_220_Left_Station"/>
-            <Translation x="0*mm" y="0*mm" z="[RP_220_Left_Station_Position_z]-[RP_220_Left_Station:RP_220_Left_Station_Length]/2"/>
-        </PosPart>
-        <PosPart copyNumber="1">
-            <rParent name="TotemRPGlobal:OTOTEM"/>
-            <rChild name="RP_147_Right_Station:RP_147_Right_Station"/>
-            <Translation x="0*mm" y="0*mm" z="[RP_147_Right_Station_Position_z]+[RP_147_Right_Station:RP_147_Right_Station_Length]/2"/>
-        </PosPart>
-        <PosPart copyNumber="1">
-            <rParent name="TotemRPGlobal:OTOTEM"/>
-            <rChild name="RP_147_Left_Station:RP_147_Left_Station"/>
-            <Translation x="0*mm" y="0*mm" z="[RP_147_Left_Station_Position_z]-[RP_147_Left_Station:RP_147_Left_Station_Length]/2"/>
-        </PosPart>
--->
     </PosPartSection>
 </DDDefinition>
