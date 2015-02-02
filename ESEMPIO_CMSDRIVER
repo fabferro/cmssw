@@ -1,0 +1,2 @@
+cmsDriver.py SingleMuPt1_cfi.py -s GEN,SIM,DIGI --conditions=MC_72_V1::All --eventcontent RECOSIM -n 10 --no_exec
+
