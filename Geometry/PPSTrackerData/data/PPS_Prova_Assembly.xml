@@ -33,7 +33,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="0*mm" z="0*mm"/>
+            <Translation x="0*mm" y="0*mm" z="5*m"/>
             <rRotation name="ModuleROTATION"/>
 
         </PosPart>
