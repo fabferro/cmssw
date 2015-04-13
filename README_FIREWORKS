@@ -2,10 +2,10 @@ Per creare la geometria leggibile a Firework:
 cmsRun Fireworks/Geometry/python/dumpVuoto_e_PPS_Geometry_cfg.py
 L'output di roor si puo' rinominare cmsSimGeom-6PPSmodules.root e allora
 per vedere la geometria
-cmsShow -c Geometry/PPSTrackerData/test/showPPSEnvelop.fwc --sim-geom-file Geometry/PPSTrackerData/test/cmsSimGeom-6PPSmodules.root
+cmsShow -c Geometry/PPSCommonData/test/showPPSEnvelop.fwc --sim-geom-file Geometry/PPSCommonData/test/cmsSimGeom-6PPSmodules.root
 
 Per vedere 6 piani nella BOX
 
 cmsRun Fireworks/Geometry/python/dumpVuoto_e_PPS_BOX_Geometry_cfg.py
-cmsShow -c Geometry/PPSTrackerData/test/showPPSEnvelop.fwc --sim-geom-file cmsSimGeom-6.root
+cmsShow -c Geometry/PPSCommonData/test/showPPSEnvelop.fwc --sim-geom-file cmsSimGeom-6.root
 

@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("DUMP")
-process.load("Geometry.PPSTrackerData.vuoto_e_PPS_Box_cfi")
+process.load("Geometry.PPSCommonData.vuoto_e_PPS_Box_cfi")
 
 process.source = cms.Source("EmptySource")
 
