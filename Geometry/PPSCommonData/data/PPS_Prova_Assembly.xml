@@ -8,6 +8,8 @@
 <Constant name="FullModuleThickness"   value="[PPSTrackerModule:EnvelopT]+[PPSTrackerModule:ROChipT]+[PPSTrackerModule:BumpBondT]+[PPSTrackerModule:WaferT]" />
 <Constant name="ModuleOffset"   value="([FullModuleThickness]+[PPSTrackerModule:ROChipT]+[PPSTrackerModule:BumpBondT])*sin([RotAngle])" />
 
+<Constant name="Zposition" value="5*m" />
+
 <!-- offset to align the sensors:  www.ge.infn.it/~ferro/CMS/PPS_offset_piani.pdf -->
     </ConstantsSection>
   
@@ -33,7 +35,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="0*mm" z="5*m"/>
+            <Translation x="0*mm" y="0*mm" z="[Zposition]"/>
             <rRotation name="ModuleROTATION"/>
 
         </PosPart>
@@ -42,7 +44,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="-[ModuleOffset]" z="10*mm"/>
+            <Translation x="0*mm" y="-[ModuleOffset]" z="[Zposition]+10*mm"/>
             <rRotation name="ModuleROTATIONmirror"/>
 
         </PosPart>
@@ -51,7 +53,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="0*mm" z="20*mm"/>
+            <Translation x="0*mm" y="0*mm" z="[Zposition]+20*mm"/>
             <rRotation name="ModuleROTATION"/>
 
         </PosPart>
@@ -60,7 +62,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="-[ModuleOffset]" z="30*mm"/>
+            <Translation x="0*mm" y="-[ModuleOffset]" z="[Zposition]+30*mm"/>
             <rRotation name="ModuleROTATIONmirror"/>
 
         </PosPart>
@@ -69,7 +71,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="0*mm" z="40*mm"/>
+            <Translation x="0*mm" y="0*mm" z="[Zposition]+40*mm"/>
             <rRotation name="ModuleROTATION"/>
 
         </PosPart>
@@ -78,7 +80,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="PPSTrackerModule:Envelop"/>
-            <Translation x="0*mm" y="-[ModuleOffset]" z="50*mm"/>
+            <Translation x="0*mm" y="-[ModuleOffset]" z="[Zposition]+50*mm"/>
             <rRotation name="ModuleROTATIONmirror"/>
 
         </PosPart>

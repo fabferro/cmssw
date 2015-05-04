@@ -18,7 +18,7 @@ process.load('Configuration.EventContent.EventContent_cff')
 #process.load('Configuration.Geometry.GeometrySimDB_cff')
 #process.load('Configuration.Geometry.GeometrySimDB_cff_my')
 
-process.load("Geometry.PPSCommonData.vuoto_e_PPS_cfi")
+process.load("Geometry.PPSCommonData.vuoto_e_PPS_Box_cfi")
 #process.load("Geometry.CMSCommonData.ecalOnlyGeometryXML_cfi")
 
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
@@ -123,7 +123,7 @@ process.generator = cms.EDProducer("FlatRandomEGunProducer",
         PartID = cms.vint32(12),
         MaxEta = cms.double(10),
         MaxPhi = cms.double(3.14159265359),
-        MinEta = cms.double(7),
+        MinEta = cms.double(4),
         MinPhi = cms.double(-3.14159265359)
     ),
     Verbosity = cms.untracked.int32(0),

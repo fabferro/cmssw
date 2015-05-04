@@ -1,2 +1,4 @@
 cmsRun Geometry/PPSCommonData/test/provaOneNu_myGeo_Tracer.py
+cmsRun Geometry/PPSCommonData/test/provaOneNu_myGeo_Box_Tracer.py
+
 
