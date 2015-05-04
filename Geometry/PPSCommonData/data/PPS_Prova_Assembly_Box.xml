@@ -43,7 +43,7 @@
 
             <rParent name="TotemRPGlobal:OTOTEM"/>
             <rChild name="RP_Box:RP_box_primary_vacuum"/>
-            <Translation x="0*mm" y="50*mm" z="5*m"/>
+            <Translation x="0*mm" y="50*cm" z="5*m"/>
  
 
         </PosPart>
