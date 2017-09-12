@@ -6,6 +6,7 @@
 *
 */
 
+
 #ifndef DataFormats_CTPPSReco_CTPPSPixelRecHit_H
 #define DataFormats_CTPPSReco_CTPPSPixelRecHit_H
 
