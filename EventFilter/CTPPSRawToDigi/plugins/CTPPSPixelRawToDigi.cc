@@ -85,7 +85,7 @@ void CTPPSPixelRawToDigi::produce( edm::Event& ev,
   auto usererror_detidcollection = std::make_unique<DetIdCollection>();
 
   if(data_exist){
-  es.get<CTPPSPixelDAQMappingRcd>().get( mapping);
+    es.get<CTPPSPixelDAQMappingRcd>().get( mapping);
 
     fedIds_   = mapping->fedIds();
 

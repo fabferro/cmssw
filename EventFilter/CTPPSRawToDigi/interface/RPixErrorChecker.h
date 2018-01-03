@@ -60,11 +60,8 @@ public:
 
 private:
 
-
   bool includeErrors;
   
-
-
 };
 
 #endif
