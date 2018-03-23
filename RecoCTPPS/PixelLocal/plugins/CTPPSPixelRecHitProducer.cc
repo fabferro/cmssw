@@ -4,6 +4,7 @@
 CTPPSPixelRecHitProducer::CTPPSPixelRecHitProducer(const edm::ParameterSet& conf) :
   param_(conf), cluster2hit_(conf)
 {
+//comment
   src_ = conf.getParameter<edm::InputTag>("RPixClusterTag");
   verbosity_ = conf.getUntrackedParameter<int> ("RPixVerbosity");	 
   tokenCTPPSPixelCluster_ = consumes<edm::DetSetVector<CTPPSPixelCluster> >(src_);
