@@ -63,8 +63,17 @@ void RPixClusterToHit::make_hit(CTPPSPixelCluster aCluster,
   double avgWLocalX = 0;
   double avgWLocalY = 0;
   double weights = 0;
-  double weightedVarianceX = 0.;
-  double weightedVarianceY = 0.;
+  double varianceX = 0.;
+  double varianceY = 0.;
+
+  double minPxlX = 0;
+  double minPxlY = 0;
+  double maxPxlX = 0;
+  double maxPxlY = 0;
+  double halfSizeX = 0;
+  double halfSizeY = 0;
+  double avgPxlX = 0;
+  double avgPxlY = 0;
 
   if (verbosity_)
     edm::LogInfo("PPS") << "RPixClusterToHit "
@@ -75,20 +84,11 @@ void RPixClusterToHit::make_hit(CTPPSPixelCluster aCluster,
       edm::LogInfo("PPS") << "RPixClusterToHit " << aCluster.pixelRow(i) << " " << aCluster.pixelCol(i) << " "
                           << aCluster.pixelADC(i);
 
-    double minPxlX = 0;
-    double minPxlY = 0;
-    double maxPxlX = 0;
-    double maxPxlY = 0;
-
     ppt.pixelRange(aCluster.pixelRow(i), aCluster.pixelCol(i), minPxlX, maxPxlX, minPxlY, maxPxlY);
-    double halfSizeX = (maxPxlX - minPxlX) / 2.;
-    double halfSizeY = (maxPxlY - minPxlY) / 2.;
-    double avgPxlX = minPxlX + halfSizeX;
-    double avgPxlY = minPxlY + halfSizeY;
-    //error propagation
-    weightedVarianceX += aCluster.pixelADC(i) * aCluster.pixelADC(i) * halfSizeX * halfSizeX / 3.;
-    weightedVarianceY += aCluster.pixelADC(i) * aCluster.pixelADC(i) * halfSizeY * halfSizeY / 3.;
-
+    halfSizeX = (maxPxlX - minPxlX) / 2.;
+    halfSizeY = (maxPxlY - minPxlY) / 2.;
+    avgPxlX = minPxlX + halfSizeX;
+    avgPxlY = minPxlY + halfSizeY;
     avgWLocalX += avgPxlX * aCluster.pixelADC(i);
     avgWLocalY += avgPxlY * aCluster.pixelADC(i);
     weights += aCluster.pixelADC(i);
@@ -101,13 +101,23 @@ void RPixClusterToHit::make_hit(CTPPSPixelCluster aCluster,
                                       << aCluster.minPixelCol() + aCluster.colSpan() << ")";
     return;
   }
-
   double invWeights = 1. / weights;
   double avgLocalX = avgWLocalX * invWeights;
   double avgLocalY = avgWLocalY * invWeights;
 
-  double varianceX = weightedVarianceX * invWeights * invWeights;
-  double varianceY = weightedVarianceY * invWeights * invWeights;
+//calculate variance
+  if(thisClusterSize>1){
+    for (unsigned int i = 0; i < thisClusterSize; i++) {
+      ppt.pixelRange(aCluster.pixelRow(i), aCluster.pixelCol(i), minPxlX, maxPxlX, minPxlY, maxPxlY);
+      avgPxlX = minPxlX + halfSizeX;
+      avgPxlY = minPxlY + halfSizeY;
+      varianceX += aCluster.pixelADC(i) * (avgPxlX - avgLocalX) * (avgPxlX - avgLocalX) * invWeights;
+      varianceY += aCluster.pixelADC(i) * (avgPxlY - avgLocalY) * (avgPxlY - avgLocalY) * invWeights;
+    }
+  }
+// cluster size 1 in X or Y
+  if(varianceX < 1e-6) varianceX = halfSizeX*halfSizeX/3.;
+  if(varianceY < 1e-6) varianceY = halfSizeY*halfSizeY/3.;
 
   LocalPoint lp(avgLocalX, avgLocalY, 0);
   LocalError le(varianceX, 0, varianceY);
