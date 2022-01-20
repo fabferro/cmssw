@@ -49,6 +49,8 @@ void RPixRoadFinder::findPattern() {
     for (const auto& it_rh : ds_rh2.data) {
       CTPPSGeometry::Vector localV(it_rh.point().x(), it_rh.point().y(), it_rh.point().z());
       const auto& globalV = geometry_->localToGlobal(ds_rh2.id, localV);
+
+      std::cout << " in " << myid << " hit " << globalV << std::endl;
       math::Error<3>::type localError;
       localError[0][0] = it_rh.error().xx();
       localError[0][1] = it_rh.error().xy();
