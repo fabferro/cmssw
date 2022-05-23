@@ -1,5 +1,7 @@
 #include "SimPPS/PPSPixelDigiProducer/interface/RPixDetDigitizer.h"
 
+#include "DataFormats/CTPPSDetId/interface/CTPPSPixelDetId.h"
+
 RPixDetDigitizer::RPixDetDigitizer(const edm::ParameterSet &params,
                                    CLHEP::HepRandomEngine &eng,
                                    uint32_t det_id,
@@ -9,6 +11,7 @@ RPixDetDigitizer::RPixDetDigitizer(const edm::ParameterSet &params,
   theNoiseInElectrons = params.getParameter<double>("RPixEquivalentNoiseCharge");
   thePixelThresholdInE = params.getParameter<double>("RPixDummyROCThreshold");
   noNoise = params.getParameter<bool>("RPixNoNoise");
+  badPot = params.getParameter<bool>("RPixBadPot");
 
   links_persistence_ = params.getParameter<bool>("CTPPSPixelDigiSimHitRelationsPersistence");
 
@@ -25,8 +28,16 @@ void RPixDetDigitizer::run(const std::vector<PSimHit> &input,
                            std::vector<std::vector<std::pair<int, double> > > &output_digi_links,
                            const CTPPSPixelGainCalibrations *pcalibrations,
                            const PPSPixelTopology *pixelTopology) {
+
   if (verbosity_)
     edm::LogInfo("PPS") << "RPixDetDigitizer " << det_id_ << " received input.size()=" << input.size();
+
+  CTPPSPixelDetId currentId(det_id_);
+
+  /*
+  std::cout << " ++++++++++++++++++++++++++ detid " << det_id_ << std::endl;
+  std::cout << " ++++++++++++++++++++++++++ arm, station, pot, plane" << currentId.arm() << currentId.station() << currentId.rp() << currentId.plane() << std::endl;
+  */
   theRPixPileUpSignals->reset();
   bool links_persistence_checked = links_persistence_ && input_links.size() == input.size();
   int input_size = input.size();
@@ -48,4 +59,23 @@ void RPixDetDigitizer::run(const std::vector<PSimHit> &input,
   afterNoise = theSignal;
   theRPixDummyROCSimulator->ConvertChargeToHits(
       afterNoise, theSignalProvenance, output_digi, output_digi_links, pcalibrations);
+
+  if(badPot == true && currentId.arm() == 0 && currentId.station() == 2){ // 45-220-far
+
+    if(currentId.plane() == 1 || currentId.plane() == 3) output_digi.clear();
+
+    if(currentId.plane() == 2 || currentId.plane() == 4){
+
+      for ( auto it=output_digi.begin(); it != output_digi.end(); ){
+	//	std::cout << (*it) << std::endl; 
+	if(it->row() <= 79){
+	  it = output_digi.erase(it);
+	}
+	else{
+	  ++it;
+	}
+      
+      }
+    }
+  }
 }

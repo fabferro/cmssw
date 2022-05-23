@@ -49,6 +49,7 @@ private:
   double theNoiseInElectrons;   // Noise (RMS) in units of electrons.
   double thePixelThresholdInE;  // Pixel noise treshold in electorns.
   bool noNoise;                 //if the nos is included
+  bool badPot;                  // to deal with pot 45 far in may 2022
   uint32_t det_id_;
   bool misalignment_simulation_on_;
   int verbosity_;

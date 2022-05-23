@@ -128,6 +128,7 @@ void CTPPSPixelDigiProducer::fillDescriptions(edm::ConfigurationDescriptions& de
   // RPDetDigitizer
   desc.add<double>("RPixEquivalentNoiseCharge", 1000.0);
   desc.add<bool>("RPixNoNoise", false);
+  desc.add<bool>("RPixBadPot", true);
 
   // RPDisplacementGenerator
   desc.add<double>("RPixGeVPerElectron", 3.61e-09);
