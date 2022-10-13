@@ -506,7 +506,7 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
   int lumiId = event.getLuminosityBlock().id().luminosityBlock();
   if (lumiId < 0)
     lumiId = 0;
-  verbosity = 3;
+
   int RPactivity[RPotsTotalNumber], RPdigiSize[RPotsTotalNumber];
   int pixRPTracks[RPotsTotalNumber];
 
@@ -704,6 +704,7 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
 	  for (DetSet<CTPPSPixelDataError>::const_iterator dit = ds_error.begin(); dit != ds_error.end(); ++dit) {
 	    h2ErrorCode->Fill(dit->errorType(), dit->fedId());
 	  }
+	  continue;
 	}
         if (verbosity > 1)
           LogPrint("CTPPSPixelDQMSource") << "not CTPPS: ds_error.id" << ds_error.id;
