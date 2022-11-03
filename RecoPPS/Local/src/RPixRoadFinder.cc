@@ -1,4 +1,3 @@
-
 #include "RecoPPS/Local/interface/RPixRoadFinder.h"
 
 // user include files
@@ -34,7 +33,9 @@ void RPixRoadFinder::findPattern(bool isBadPot) {
   temp_all_hits.clear();
 
   Road temp_all_hits_badPot;
+  Road temp_all_hits_badPot2;
   temp_all_hits_badPot.clear();
+  temp_all_hits_badPot2.clear();
 
   // convert local hit sto global and push them to a vector
   for (const auto& ds_rh2 : *hitVector_) {
@@ -71,12 +72,17 @@ void RPixRoadFinder::findPattern(bool isBadPot) {
 
       // create new collection for planes 0 and 5 of pot 45-220-fr
 
-      if (isBadPot == true && myid.arm() == 0 && myid.station() == 2 && localV.x() > 0 &&
-          (myid.plane() == 0 || myid.plane() == 5)) {  // 45-220-far
+      //      if (isBadPot == true && myid.arm() == 0 && myid.station() == 2 && localV.x() > 0 &&
+      //          (myid.plane() == 0 || myid.plane() == 5)) {  // 45-220-far
 
+      if (myid.arm() == 0 && myid.station() == 2 && (myid.plane() == 0 || myid.plane() == 5)) { // 45-220-far
         temp_all_hits_badPot.emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
       }
-      temp_all_hits.emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
+      else if (myid.arm() == 1 && myid.station() == 2 && (myid.plane() == 0 || myid.plane() == 4)) { // 56-220-far
+	temp_all_hits_badPot2.emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
+      }
+      else
+	temp_all_hits.emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
     }
   }
 
@@ -141,4 +147,32 @@ void RPixRoadFinder::findPattern(bool isBadPot) {
       patternVector_.push_back(temp_road);
     }
   }
+
+  // JH
+  Road::iterator it_gh1_bP2 = temp_all_hits_badPot2.begin();
+  Road::iterator it_gh2_bP2;
+
+  while (it_gh1_bP2 != temp_all_hits_badPot2.end() && temp_all_hits_badPot2.size() >= 2) {
+    Road temp_road2;
+
+    it_gh2_bP2 = it_gh1_bP2;
+
+    const auto currPoint = it_gh1_bP2->globalPoint;
+
+    while (it_gh2_bP2 != temp_all_hits_badPot2.end()) {
+      const auto subtraction = currPoint - it_gh2_bP2->globalPoint;
+
+      if (subtraction.Rho() < roadRadiusBadPot_) {
+        temp_road2.push_back(*it_gh2_bP2);
+        temp_all_hits_badPot2.erase(it_gh2_bP2);
+      } else {
+        ++it_gh2_bP2;
+      }
+    }
+
+    if (temp_road2.size() == 2) {  // look for isolated tracks                                                                                                                                               
+      patternVector_.push_back(temp_road2);
+    }
+  }
+
 }
