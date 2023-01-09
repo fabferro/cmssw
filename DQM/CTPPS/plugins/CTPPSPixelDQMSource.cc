@@ -331,7 +331,7 @@ void CTPPSPixelDQMSource::bookHistograms(DQMStore::IBooker &ibooker, edm::Run co
   }
   const float minErrCode = 25.;
   const string errCode[errCodeSize] = {
-    "Invalid ROC                        ",  // error  25
+    "Masked channel                     ",  // error 25
     "Gap word",                             // error 26
     "Dummy word",                           // error 27
     "FIFO nearly full",                     // error 28
@@ -354,9 +354,9 @@ void CTPPSPixelDQMSource::bookHistograms(DQMStore::IBooker &ibooker, edm::Run co
     "Clear trigger counter",
     "Synch trigger",
     "Synch trigger error",
-    "ResetROC",
+    "Reset ROC",
     "Reset TBM",
-    "No token bit pass"
+    "No token pass"
   };
 
   const string tbmType[5] = {
