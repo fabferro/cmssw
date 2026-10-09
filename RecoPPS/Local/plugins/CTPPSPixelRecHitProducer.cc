@@ -71,6 +71,9 @@ void CTPPSPixelRecHitProducer::produce(edm::StreamID, edm::Event &event, edm::Ev
     // calculate the cluster parameters and convert it into a rechit
     clusterToHit_.buildHits(cluster.id, cluster.data, rechit.data, thePixelTopology);
   }
+// just a comment
+// another comment
+std::cout << "CIao" << std::endl;
 
   event.emplace(rechitsToken_, std::move(rechits));
 }
