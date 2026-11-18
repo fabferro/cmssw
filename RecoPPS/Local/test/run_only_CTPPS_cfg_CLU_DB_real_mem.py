@@ -53,7 +53,7 @@ process.load("EventFilter.CTPPSRawToDigi.ctppsRawToDigi_cff")
 ############
 process.o1 = cms.OutputModule("PoolOutputModule",
         outputCommands = cms.untracked.vstring('drop *',
-                                               'keep CTPPSPixelClusteredmDetSetVector_ctppsPixelClusters_*_*'
+                                               'keep std::vector<io_v1::CTPPSPixelCluster>_ctppsPixelClusters_*_*'
     
 ),
         fileName = cms.untracked.string('simevent_CTPPS_CLU_DB_real_mem.root')

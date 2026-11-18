@@ -108,14 +108,13 @@
 
 <!-- pixel objects -->
 
-  <class name="io_v1::CTPPSPixelCluster" ClassVersion="3">
+  <class name="io_v1::CTPPSPixelCluster" ClassVersion="5">
     <version ClassVersion="3" checksum="1032049411"/>
+    <version ClassVersion="4" checksum="1032049411"/>
+    <version ClassVersion="5" checksum="699821516"/>
   </class>
-  <class name="edm::DetSet<io_v1::CTPPSPixelCluster>"/>
   <class name="std::vector<io_v1::CTPPSPixelCluster>"/>
-  <class name="std::vector<edm::DetSet<io_v1::CTPPSPixelCluster> >"/>
-  <class name="edm::DetSetVector<io_v1::CTPPSPixelCluster>"/>
-  <class name="edm::Wrapper<edm::DetSetVector<io_v1::CTPPSPixelCluster> >"/>
+  <class name="edm::Wrapper<std::vector<io_v1::CTPPSPixelCluster> >"/>
 
   <class name="io_v1::CTPPSPixelRecHit" ClassVersion="4">
     <version ClassVersion="3" checksum="2339055351"/>

@@ -4,6 +4,8 @@
  *
  **********************************************************************/
 
+#include <map>
+
 #include "CondFormats/DataRecord/interface/PPSPixelTopologyRcd.h"
 #include "CondFormats/PPSObjects/interface/PPSPixelTopology.h"
 #include "DataFormats/CTPPSReco/interface/CTPPSPixelCluster.h"
@@ -37,15 +39,14 @@ public:
 
 private:
   const edm::ESGetToken<PPSPixelTopology, PPSPixelTopologyRcd> pixelTopologyToken_;
-  const edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelCluster>> clustersToken_;
+  const edm::EDGetTokenT<std::vector<CTPPSPixelCluster>> clustersToken_;
   const edm::EDPutTokenT<std::vector<CTPPSPixelRecHit>> rechitsToken_;
   const RPixClusterToHit clusterToHit_;
 };
 
 CTPPSPixelRecHitProducer::CTPPSPixelRecHitProducer(const edm::ParameterSet &config)
     : pixelTopologyToken_(esConsumes<PPSPixelTopology, PPSPixelTopologyRcd>()),
-      clustersToken_(
-          consumes<edm::DetSetVector<CTPPSPixelCluster>>(config.getParameter<edm::InputTag>("RPixClusterTag"))),
+      clustersToken_(consumes<std::vector<CTPPSPixelCluster>>(config.getParameter<edm::InputTag>("RPixClusterTag"))),
       rechitsToken_(produces<std::vector<CTPPSPixelRecHit>>()),
       clusterToHit_(config) {}
 
@@ -58,14 +59,20 @@ void CTPPSPixelRecHitProducer::fillDescriptions(edm::ConfigurationDescriptions &
 
 void CTPPSPixelRecHitProducer::produce(edm::StreamID, edm::Event &event, edm::EventSetup const &setup) const {
   PPSPixelTopology const &thePixelTopology = setup.getData(pixelTopologyToken_);
-  edm::DetSetVector<CTPPSPixelCluster> const &clusters = event.get(clustersToken_);
+  std::vector<CTPPSPixelCluster> const &clusters = event.get(clustersToken_);
   std::vector<CTPPSPixelRecHit> rechits;
   rechits.reserve(clusters.size());
 
+  std::map<unsigned int, std::vector<CTPPSPixelCluster>> clustersByDet;
+  for (auto const &cluster : clusters) {
+    clustersByDet[cluster.detId().rawId()].push_back(cluster);
+  }
+
   // run the reconstruction
-  for (auto const &cluster : clusters)
-    // calculate the cluster parameters and convert it into a rechit
-    clusterToHit_.buildHits(CTPPSPixelDetId{cluster.id}, cluster.data, rechits, thePixelTopology);
+  for (auto const &[detId, detClusters] : clustersByDet) {
+    clusterToHit_.buildHits(CTPPSPixelDetId{detId}, detClusters, rechits, thePixelTopology);
+  }
+
   std::ranges::sort(rechits, [](const CTPPSPixelRecHit &a, const CTPPSPixelRecHit &b) {
     if (a.detId() < b.detId())
       return true;

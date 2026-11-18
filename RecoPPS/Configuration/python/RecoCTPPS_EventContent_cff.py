@@ -37,7 +37,7 @@ RecoCTPPSAOD = cms.PSet(
     # tracking pixels
     'keep CTPPSPixelDigiedmDetSetVector_ctppsPixelDigis_*_*',
     'keep CTPPSPixelDataErroredmDetSetVector_ctppsPixelDigis_*_*',
-    'keep CTPPSPixelClusteredmDetSetVector_ctppsPixelClusters_*_*',
+    'keep std::vector<io_v1::CTPPSPixelCluster>_ctppsPixelClusters_*_*',
     'keep CTPPSPixelRecHits_ctppsPixelRecHits_*_*',
     'keep CTPPSPixelLocalTracks_ctppsPixelLocalTracks_*_*',
 

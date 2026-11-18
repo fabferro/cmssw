@@ -45,21 +45,21 @@ public:
 
 private:
   const edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelDigi>> tokenCTPPSPixelDigi_;
-  const edm::EDPutTokenT<edm::DetSetVector<CTPPSPixelCluster>> tokenCTPPSPixelCluster_;
+  const edm::EDPutTokenT<std::vector<CTPPSPixelCluster>> tokenCTPPSPixelCluster_;
   const edm::ESGetToken<CTPPSPixelAnalysisMask, CTPPSPixelAnalysisMaskRcd> tokenCTPPSPixelAnalysisMask_;
   const edm::ESGetToken<CTPPSPixelGainCalibrations, CTPPSPixelGainCalibrationsRcd> tokenGainCalib_;
   const int verbosity_;
   RPixDetClusterizer clusterizer_;
 
   void run(const edm::DetSetVector<CTPPSPixelDigi> &input,
-           edm::DetSetVector<CTPPSPixelCluster> &output,
+           std::vector<CTPPSPixelCluster> &output,
            const CTPPSPixelAnalysisMask &mask,
            const CTPPSPixelGainCalibrations &gainCalibration);
 };
 
 CTPPSPixelClusterProducer::CTPPSPixelClusterProducer(const edm::ParameterSet &conf)
     : tokenCTPPSPixelDigi_(consumes<edm::DetSetVector<CTPPSPixelDigi>>(conf.getParameter<edm::InputTag>("tag"))),
-      tokenCTPPSPixelCluster_(produces()),
+      tokenCTPPSPixelCluster_(produces<std::vector<CTPPSPixelCluster>>()),
       tokenCTPPSPixelAnalysisMask_(esConsumes()),
       tokenGainCalib_(esConsumes()),
       verbosity_(conf.getUntrackedParameter<int>("RPixVerbosity")),
@@ -82,7 +82,7 @@ void CTPPSPixelClusterProducer::produce(edm::Event &event, const edm::EventSetup
   // get inputs
   edm::DetSetVector<CTPPSPixelDigi> const &rpd = event.get(tokenCTPPSPixelDigi_);
 
-  edm::DetSetVector<CTPPSPixelCluster> output;
+  std::vector<CTPPSPixelCluster> output;
 
   if (not rpd.empty()) {
     // get analysis mask to mask channels
@@ -98,20 +98,24 @@ void CTPPSPixelClusterProducer::produce(edm::Event &event, const edm::EventSetup
 }
 
 void CTPPSPixelClusterProducer::run(const edm::DetSetVector<CTPPSPixelDigi> &input,
-                                    edm::DetSetVector<CTPPSPixelCluster> &output,
+                                    std::vector<CTPPSPixelCluster> &output,
                                     const CTPPSPixelAnalysisMask &mask,
                                     const CTPPSPixelGainCalibrations &gainCalibration) {
   for (const auto &ds_digi : input) {
-    edm::DetSet<CTPPSPixelCluster> &ds_cluster = output.find_or_insert(ds_digi.id);
-    clusterizer_.buildClusters(ds_digi.id, ds_digi.data, ds_cluster.data, &gainCalibration, &mask);
+    std::vector<CTPPSPixelCluster> clusters;
+    clusterizer_.buildClusters(ds_digi.id, ds_digi.data, clusters, &gainCalibration, &mask);
 
     if (verbosity_) {
       unsigned int cluN = 0;
-      for (std::vector<CTPPSPixelCluster>::iterator iit = ds_cluster.data.begin(); iit != ds_cluster.data.end();
-           iit++) {
-        edm::LogInfo("CTPPSPixelClusterProducer") << "Cluster " << ++cluN << " avg row " << (*iit).avg_row()
-                                                  << " avg col " << (*iit).avg_col() << " ADC.size " << (*iit).size();
+      for (const auto &cluster : clusters) {
+        edm::LogInfo("CTPPSPixelClusterProducer") << "Cluster " << ++cluN << " avg row " << cluster.avg_row()
+                                                  << " avg col " << cluster.avg_col() << " ADC.size " << cluster.size();
       }
+    }
+
+    for (auto &cluster : clusters) {
+      cluster.setDetId(CTPPSPixelDetId(ds_digi.id));
+      output.emplace_back(std::move(cluster));
     }
   }
 }

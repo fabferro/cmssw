@@ -11,6 +11,8 @@
 #include <cstdint>
 #include <cassert>
 
+#include "DataFormats/CTPPSDetId/interface/CTPPSPixelDetId.h"
+
 namespace io_v1 {
   class CTPPSPixelCluster {
   public:
@@ -87,6 +89,9 @@ namespace io_v1 {
     // Return cluster dimension in columns
     unsigned int sizeCol() const { return thePixelColSpan + 1; }
 
+    inline void setDetId(CTPPSPixelDetId detid) { detid_ = detid; }
+    inline CTPPSPixelDetId detId() const { return detid_; }
+
     inline unsigned int minPixelRow() const { return theMinPixelRow; }
     inline unsigned int minPixelCol() const { return theMinPixelCol; }
 
@@ -101,6 +106,8 @@ namespace io_v1 {
     unsigned int pixelADC(unsigned int i) const { return thePixelADC[i]; }
 
   private:
+    CTPPSPixelDetId detid_{CTPPSPixelDetId(0, 0)};
+
     std::vector<uint8_t> thePixelOffset;
     std::vector<uint16_t> thePixelADC;
 
