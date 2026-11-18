@@ -1,7 +1,5 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
-#include "DataFormats/Common/interface/DetSet.h"
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
@@ -26,6 +24,8 @@
 
 #include <memory>
 
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -162,11 +162,6 @@ void CTPPSPixelLocalTrackProducer::produce(edm::Event &iEvent, const edm::EventS
 
   edm::Handle<std::vector<CTPPSPixelRecHit>> recHits;
   iEvent.getByToken(tokenCTPPSPixelRecHit_, recHits);
-  // convert from STL vector to input DetSetVector
-  edm::DetSetVector<CTPPSPixelRecHit> recHitVector;
-  for (const auto &rechit : *recHits)
-    recHitVector.find_or_insert(rechit.detId()).push_back(rechit);
-
   // get geometry
   edm::ESHandle<CTPPSGeometry> geometryHandler = iSetup.getHandle(tokenCTPPSGeometry_);
   const CTPPSGeometry &geometry = *geometryHandler;
@@ -232,48 +227,44 @@ void CTPPSPixelLocalTrackProducer::produce(edm::Event &iEvent, const edm::EventS
   }
   std::vector<CTPPSPixelDetId> listOfPotWithHighOccupancyPlanes;
   std::map<CTPPSPixelDetId, uint32_t> mapHitPerPot;
+  std::map<uint32_t, uint32_t> mapHitPerPlane;
 
-  for (const auto &recHitSet : recHitVector) {
+  for (const auto &recHit : *recHits) {
+    const auto detId = recHit.detId();
+    const auto romanPotId = detId.rpId();
+    ++mapHitPerPlane[detId.rawId()];
+    ++mapHitPerPot[romanPotId];
+  }
+
+  for (const auto &[detId, hitCount] : mapHitPerPlane) {
+    const auto romanPotId = CTPPSPixelDetId(detId).rpId();
     if (verbosity_ > 2)
-      edm::LogInfo("CTPPSPixelLocalTrackProducer")
-          << "Hits found in plane = " << recHitSet.detId() << " number = " << recHitSet.size();
-    CTPPSPixelDetId tmpRomanPotId = CTPPSPixelDetId(recHitSet.detId()).rpId();
-    uint32_t hitOnPlane = recHitSet.size();
-
-    //Get the number of hits per pot
-    if (mapHitPerPot.find(tmpRomanPotId) == mapHitPerPot.end()) {
-      mapHitPerPot[tmpRomanPotId] = hitOnPlane;
-    } else
-      mapHitPerPot[tmpRomanPotId] += hitOnPlane;
-
-    //check is the plane occupancy is too high and save the corresponding pot
-    if (maxHitPerPlane_ >= 0 && hitOnPlane > (uint32_t)maxHitPerPlane_) {
+      edm::LogInfo("CTPPSPixelLocalTrackProducer") << "Hits found in plane = " << detId << " number = " << hitCount;
+    if (maxHitPerPlane_ >= 0 && hitCount > (uint32_t)maxHitPerPlane_) {
       if (verbosity_ > 2)
         edm::LogInfo("CTPPSPixelLocalTrackProducer")
             << " ---> Too many hits in the plane, pot will be excluded from tracking cleared";
-      listOfPotWithHighOccupancyPlanes.push_back(tmpRomanPotId);
+      listOfPotWithHighOccupancyPlanes.push_back(romanPotId);
     }
   }
 
-  //remove rechit for pot with too many hits or containing planes with too many hits
-  for (const auto &recHitSet : recHitVector) {
-    const auto tmpDetectorId = CTPPSPixelDetId(recHitSet.detId());
-    const auto tmpRomanPotId = tmpDetectorId.rpId();
-
-    if ((maxHitPerRomanPot_ >= 0 && mapHitPerPot[tmpRomanPotId] > (uint32_t)maxHitPerRomanPot_) ||
-        find(listOfPotWithHighOccupancyPlanes.begin(), listOfPotWithHighOccupancyPlanes.end(), tmpRomanPotId) !=
-            listOfPotWithHighOccupancyPlanes.end()) {
-      edm::DetSet<CTPPSPixelRecHit> &tmpDetSet = recHitVector[tmpDetectorId];
-      tmpDetSet.clear();
-    }
+  std::vector<CTPPSPixelRecHit> filteredRecHits;
+  filteredRecHits.reserve(recHits->size());
+  for (const auto &recHit : *recHits) {
+    const auto romanPotId = recHit.detId().rpId();
+    if ((maxHitPerRomanPot_ >= 0 && mapHitPerPot[romanPotId] > (uint32_t)maxHitPerRomanPot_) ||
+        find(listOfPotWithHighOccupancyPlanes.begin(), listOfPotWithHighOccupancyPlanes.end(), romanPotId) !=
+            listOfPotWithHighOccupancyPlanes.end())
+      continue;
+    filteredRecHits.push_back(recHit);
   }
 
-  edm::DetSetVector<CTPPSPixelLocalTrack> foundTracks;
+  std::map<CTPPSPixelDetId, std::vector<CTPPSPixelLocalTrack>> tracksByPot;
 
   // Pattern finder
 
   patternFinder_->clear();
-  patternFinder_->setHits(&recHitVector);
+  patternFinder_->setHits(&filteredRecHits);
   patternFinder_->setGeometry(&geometry);
   patternFinder_->findPattern(is2PlanePotV);
   std::vector<RPixDetPatternFinder::Road> patternVector = patternFinder_->getPatterns();
@@ -325,32 +316,26 @@ void CTPPSPixelLocalTrackProducer::produce(edm::Event &iEvent, const edm::EventS
 
     for (const auto &track : tmpTracksVector) {
       ++numberOfTracks;
-      edm::DetSet<CTPPSPixelLocalTrack> &tmpDetSet = foundTracks.find_or_insert(romanPotId);
-      tmpDetSet.push_back(track);
+      tracksByPot[romanPotId].push_back(track);
     }
   }
 
   if (verbosity_ > 1)
     edm::LogInfo("CTPPSPixelLocalTrackProducer") << "Number of tracks will be saved = " << numberOfTracks;
 
-  for (const auto &track : foundTracks) {
+  auto pOut = std::make_unique<std::vector<CTPPSPixelLocalTrack>>();
+  for (const auto &[romanPotId, tracks] : tracksByPot) {
     if (verbosity_ > 1)
       edm::LogInfo("CTPPSPixelLocalTrackProducer")
-          << "Track found in detId = " << track.detId() << " number = " << track.size();
-    if (maxTrackPerRomanPot_ >= 0 && track.size() > (uint32_t)maxTrackPerRomanPot_) {
+          << "Track found in detId = " << romanPotId << " number = " << tracks.size();
+    if (maxTrackPerRomanPot_ >= 0 && tracks.size() > (uint32_t)maxTrackPerRomanPot_) {
       if (verbosity_ > 1)
         edm::LogInfo("CTPPSPixelLocalTrackProducer") << " ---> Too many tracks in the pot, cleared";
-      CTPPSPixelDetId tmpRomanPotId = CTPPSPixelDetId(track.detId());
-      edm::DetSet<CTPPSPixelLocalTrack> &tmpDetSet = foundTracks[tmpRomanPotId];
-      tmpDetSet.clear();
+      continue;
     }
+    pOut->insert(pOut->end(), tracks.begin(), tracks.end());
   }
 
-  // convert back from STL vector to DetSetVector
-  auto pOut = std::make_unique<std::vector<CTPPSPixelLocalTrack>>();
-  for (const auto &tracks : foundTracks)
-    for (const auto &track : tracks)
-      pOut->push_back(track);
   iEvent.put(std::move(pOut));
 }
 

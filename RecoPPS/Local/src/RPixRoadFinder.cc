@@ -33,52 +33,49 @@ void RPixRoadFinder::findPattern(bool* is2PlanePot) {
   Road temp_all_hits;
   Road temp_all_hits_2PlanePot[4];
 
-  // convert local hit sto global and push them to a vector
-  for (const auto& ds_rh2 : *hitVector_) {
-    const auto myid = CTPPSPixelDetId(ds_rh2.id);
-    for (const auto& it_rh : ds_rh2.data) {
-      CTPPSGeometry::Vector localV(it_rh.point().x(), it_rh.point().y(), it_rh.point().z());
-      const auto& globalV = geometry_->localToGlobal(ds_rh2.id, localV);
-      math::Error<3>::type localError;
-      localError[0][0] = it_rh.error().xx();
-      localError[0][1] = it_rh.error().xy();
-      localError[0][2] = 0.;
-      localError[1][0] = it_rh.error().xy();
-      localError[1][1] = it_rh.error().yy();
-      localError[1][2] = 0.;
-      localError[2][0] = 0.;
-      localError[2][1] = 0.;
-      localError[2][2] = 0.;
-      if (verbosity_ > 2)
-        edm::LogInfo("RPixRoadFinder") << "Hits = " << ds_rh2.data.size();
+  // convert local hits to global and push them to a vector
+  if (verbosity_ > 2)
+    edm::LogInfo("RPixRoadFinder") << "Hits = " << hitVector_->size();
+  for (const auto& hit : *hitVector_) {
+    const auto myid = hit.detId();
+    CTPPSGeometry::Vector localV(hit.point().x(), hit.point().y(), hit.point().z());
+    const auto& globalV = geometry_->localToGlobal(myid.rawId(), localV);
+    math::Error<3>::type localError;
+    localError[0][0] = hit.error().xx();
+    localError[0][1] = hit.error().xy();
+    localError[0][2] = 0.;
+    localError[1][0] = hit.error().xy();
+    localError[1][1] = hit.error().yy();
+    localError[1][2] = 0.;
+    localError[2][0] = 0.;
+    localError[2][1] = 0.;
+    localError[2][2] = 0.;
+    DetGeomDesc::RotationMatrix theRotationMatrix = geometry_->sensor(myid)->rotation();
+    AlgebraicMatrix33 theRotationTMatrix;
+    theRotationMatrix.GetComponents(theRotationTMatrix(0, 0),
+                                    theRotationTMatrix(0, 1),
+                                    theRotationTMatrix(0, 2),
+                                    theRotationTMatrix(1, 0),
+                                    theRotationTMatrix(1, 1),
+                                    theRotationTMatrix(1, 2),
+                                    theRotationTMatrix(2, 0),
+                                    theRotationTMatrix(2, 1),
+                                    theRotationTMatrix(2, 2));
 
-      DetGeomDesc::RotationMatrix theRotationMatrix = geometry_->sensor(myid)->rotation();
-      AlgebraicMatrix33 theRotationTMatrix;
-      theRotationMatrix.GetComponents(theRotationTMatrix(0, 0),
-                                      theRotationTMatrix(0, 1),
-                                      theRotationTMatrix(0, 2),
-                                      theRotationTMatrix(1, 0),
-                                      theRotationTMatrix(1, 1),
-                                      theRotationTMatrix(1, 2),
-                                      theRotationTMatrix(2, 0),
-                                      theRotationTMatrix(2, 1),
-                                      theRotationTMatrix(2, 2));
+    math::Error<3>::type globalError = ROOT::Math::SimilarityT(theRotationTMatrix, localError);
 
-      math::Error<3>::type globalError = ROOT::Math::SimilarityT(theRotationTMatrix, localError);
+    // create new collections for bad (2 planes) and good pots
 
-      // create new collections for bad (2 planes) and good pots
-
-      if (is2PlanePot[0] == true && myid.arm() == 0 && myid.station() == 2) {  // 45-220
-        temp_all_hits_2PlanePot[0].emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
-      } else if (is2PlanePot[1] == true && myid.arm() == 0 && myid.station() == 0) {  // 45-210
-        temp_all_hits_2PlanePot[1].emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
-      } else if (is2PlanePot[2] == true && myid.arm() == 1 && myid.station() == 0) {  // 56-210
-        temp_all_hits_2PlanePot[2].emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
-      } else if (is2PlanePot[3] == true && myid.arm() == 1 && myid.station() == 2) {  // 56-220
-        temp_all_hits_2PlanePot[3].emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
-      } else {
-        temp_all_hits.emplace_back(PointInPlane{globalV, globalError, it_rh, myid});
-      }
+    if (is2PlanePot[0] == true && myid.arm() == 0 && myid.station() == 2) {  // 45-220
+      temp_all_hits_2PlanePot[0].emplace_back(PointInPlane{globalV, globalError, hit, myid});
+    } else if (is2PlanePot[1] == true && myid.arm() == 0 && myid.station() == 0) {  // 45-210
+      temp_all_hits_2PlanePot[1].emplace_back(PointInPlane{globalV, globalError, hit, myid});
+    } else if (is2PlanePot[2] == true && myid.arm() == 1 && myid.station() == 0) {  // 56-210
+      temp_all_hits_2PlanePot[2].emplace_back(PointInPlane{globalV, globalError, hit, myid});
+    } else if (is2PlanePot[3] == true && myid.arm() == 1 && myid.station() == 2) {  // 56-220
+      temp_all_hits_2PlanePot[3].emplace_back(PointInPlane{globalV, globalError, hit, myid});
+    } else {
+      temp_all_hits.emplace_back(PointInPlane{globalV, globalError, hit, myid});
     }
   }
 

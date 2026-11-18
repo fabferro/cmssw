@@ -12,9 +12,6 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
-#include "DataFormats/Common/interface/DetSet.h"
-
 #include "DataFormats/CTPPSReco/interface/CTPPSPixelRecHit.h"
 #include "DataFormats/CTPPSDetId/interface/CTPPSPixelDetId.h"
 
@@ -37,14 +34,14 @@ public:
   } PointInPlane;
   typedef std::vector<PointInPlane> Road;
 
-  void setHits(const edm::DetSetVector<CTPPSPixelRecHit> *hitVector) { hitVector_ = hitVector; }
+  void setHits(const std::vector<CTPPSPixelRecHit> *hitVector) { hitVector_ = hitVector; }
   virtual void findPattern(bool *is2planepot) = 0;
   void clear() { patternVector_.clear(); }
   std::vector<Road> const &getPatterns() const { return patternVector_; }
   void setGeometry(const CTPPSGeometry *geometry) { geometry_ = geometry; }
 
 protected:
-  const edm::DetSetVector<CTPPSPixelRecHit> *hitVector_;
+  const std::vector<CTPPSPixelRecHit> *hitVector_;
   std::vector<Road> patternVector_;
   const CTPPSGeometry *geometry_;
 };
