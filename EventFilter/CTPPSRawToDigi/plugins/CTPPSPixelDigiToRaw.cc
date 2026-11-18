@@ -42,7 +42,6 @@ Implementation:
 
 #include "FWCore/Utilities/interface/InputTag.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDigi/interface/CTPPSPixelDigi.h"
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "DataFormats/FEDRawData/interface/FEDRawData.h"
@@ -79,7 +78,7 @@ private:
   std::set<unsigned int> fedIds_;
   std::string mappingLabel_;
   edm::ESWatcher<CTPPSPixelDAQMappingRcd> recordWatcher_;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelDigi>> tCTPPSPixelDigi_;
+  edm::EDGetTokenT<std::vector<CTPPSPixelDigi>> tCTPPSPixelDigi_;
   edm::ESGetToken<CTPPSPixelDAQMapping, CTPPSPixelDAQMappingRcd> tCTPPSPixelDAQMapping_;
   std::vector<CTPPSPixelDataFormatter::PPSPixelIndex> v_iDdet2fed_;
   CTPPSPixelFramePosition fPos_;
@@ -106,7 +105,7 @@ CTPPSPixelDigiToRaw::CTPPSPixelDigiToRaw(const edm::ParameterSet& iConfig)
       mappingLabel_(iConfig.getParameter<std::string>("mappingLabel")),
       eSummary_("CTPPSPixelDataFormatter", "[ctppsPixelRawToDigi]", false) {
   //register your products
-  tCTPPSPixelDigi_ = consumes<edm::DetSetVector<CTPPSPixelDigi>>(iConfig.getParameter<edm::InputTag>("InputLabel"));
+  tCTPPSPixelDigi_ = consumes<std::vector<CTPPSPixelDigi>>(iConfig.getParameter<edm::InputTag>("InputLabel"));
   tCTPPSPixelDAQMapping_ = esConsumes<CTPPSPixelDAQMapping, CTPPSPixelDAQMappingRcd>();
 
   // Define EDProduct type
@@ -128,16 +127,16 @@ void CTPPSPixelDigiToRaw::produce(edm::Event& iEvent, const edm::EventSetup& iSe
 
   eventCounter_++;
 
-  edm::Handle<edm::DetSetVector<CTPPSPixelDigi>> digiCollection;
+  edm::Handle<std::vector<CTPPSPixelDigi>> digiCollection;
   iEvent.getByToken(tCTPPSPixelDigi_, digiCollection);
 
   CTPPSPixelDataFormatter::RawData rawdata;
   CTPPSPixelDataFormatter::Digis digis;
 
   int digiCounter = 0;
-  for (auto const& di : *digiCollection) {
-    digiCounter += (di.data).size();
-    digis[di.id] = di.data;
+  for (auto const& digi : *digiCollection) {
+    ++digiCounter;
+    digis[digi.detId()].push_back(digi);
   }
   allDigiCounter_ += digiCounter;
   edm::ESHandle<CTPPSPixelDAQMapping> mapping;

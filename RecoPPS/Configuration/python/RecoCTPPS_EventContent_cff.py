@@ -35,8 +35,8 @@ RecoCTPPSAOD = cms.PSet(
     'keep TotemTimingLocalTracks_totemTimingLocalTracks_*_*',
 
     # tracking pixels
-    'keep CTPPSPixelDigiedmDetSetVector_ctppsPixelDigis_*_*',
-    'keep CTPPSPixelDataErroredmDetSetVector_ctppsPixelDigis_*_*',
+    'keep std::vector<io_v1::CTPPSPixelDigi>_ctppsPixelDigis_*_*',
+    'keep std::vector<io_v1::CTPPSPixelDataError>_ctppsPixelDigis_*_*',
     'keep std::vector<io_v1::CTPPSPixelCluster>_ctppsPixelClusters_*_*',
     'keep CTPPSPixelRecHits_ctppsPixelRecHits_*_*',
     'keep CTPPSPixelLocalTracks_ctppsPixelLocalTracks_*_*',

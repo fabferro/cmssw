@@ -21,9 +21,9 @@ namespace io_v1 {
     /// Default constructor
     CTPPSPixelDataError();
     /// Constructor for 32-bit error word
-    CTPPSPixelDataError(uint32_t errorWord32, const int errorType, int fedId);
+    CTPPSPixelDataError(uint32_t errorWord32, const int errorType, int fedId, uint32_t detId = 0);
     /// Constructor with 64-bit error word and type included (header or trailer word)
-    CTPPSPixelDataError(uint64_t errorWord64, const int errorType, int fedId);
+    CTPPSPixelDataError(uint64_t errorWord64, const int errorType, int fedId, uint32_t detId = 0);
     /// Destructor
     ~CTPPSPixelDataError();
 
@@ -35,6 +35,8 @@ namespace io_v1 {
     inline int errorType() const { return errorType_; }
     /// the fedId where the error occured
     inline int fedId() const { return fedId_; }
+    /// the detector ID associated with the error
+    inline uint32_t detId() const { return detId_; }
     /// the error message to be displayed with the error
     inline const std::string& errorMessage() const {
       if (errorType_ >= 25 && errorType_ <= 37)
@@ -49,6 +51,7 @@ namespace io_v1 {
     uint32_t errorWord32_;
     int errorType_;
     int fedId_;
+    uint32_t detId_;
   };
 
   /// Comparison operators

@@ -21,7 +21,7 @@ bool RPixErrorChecker::checkCRC(bool& errorsInEvent, int fedId, const Word64* tr
   LogDebug("CRCCheck") << "CRC check failed,  errorType = 39";
   if (includeErrors_) {
     int errorType = 39;
-    errors[dummyDetId].emplace_back(*trailer, errorType, fedId);
+    errors[dummyDetId].emplace_back(*trailer, errorType, fedId, dummyDetId);
   }
   return false;
 }
@@ -36,7 +36,7 @@ bool RPixErrorChecker::checkHeader(bool& errorsInEvent, int fedId, const Word64*
     errorsInEvent = true;
     if (includeErrors_) {
       int errorType = 32;
-      errors[dummyDetId].emplace_back(*header, errorType, fedId);
+      errors[dummyDetId].emplace_back(*header, errorType, fedId, dummyDetId);
     }
   }
   return fedHeader.moreHeaders();
@@ -48,7 +48,7 @@ bool RPixErrorChecker::checkTrailer(
   if (!fedTrailer.check()) {
     if (includeErrors_) {
       int errorType = 33;
-      errors[dummyDetId].emplace_back(*trailer, errorType, fedId);
+      errors[dummyDetId].emplace_back(*trailer, errorType, fedId, dummyDetId);
     }
     errorsInEvent = true;
     LogDebug("FedTrailerCheck") << "fedTrailer.check failed, Fed: " << fedId << ", errorType = 33";
@@ -59,7 +59,7 @@ bool RPixErrorChecker::checkTrailer(
     errorsInEvent = true;
     if (includeErrors_) {
       int errorType = 34;
-      errors[dummyDetId].emplace_back(*trailer, errorType, fedId);
+      errors[dummyDetId].emplace_back(*trailer, errorType, fedId, dummyDetId);
     }
   }
   return fedTrailer.moreTrailers();
@@ -125,7 +125,7 @@ bool RPixErrorChecker::checkROC(
     }
 
     /// store error
-    errors[iD].emplace_back(errorWord, errorType, fedId);
+    errors[iD].emplace_back(errorWord, errorType, fedId, iD);
   }
 
   return false;
@@ -157,5 +157,5 @@ void RPixErrorChecker::conversionError(
   };
 
   if (includeErrors_ && errorType > 0)
-    errors[iD].emplace_back(errorWord, errorType, fedId);
+    errors[iD].emplace_back(errorWord, errorType, fedId, iD);
 }

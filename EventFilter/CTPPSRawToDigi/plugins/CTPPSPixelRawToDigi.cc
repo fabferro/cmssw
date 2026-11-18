@@ -29,14 +29,14 @@ CTPPSPixelRawToDigi::CTPPSPixelRawToDigi(const edm::ParameterSet& conf)
   FEDRawDataCollection_ = consumes<FEDRawDataCollection>(config_.getParameter<edm::InputTag>("inputLabel"));
   CTPPSPixelDAQMapping_ = esConsumes<CTPPSPixelDAQMapping, CTPPSPixelDAQMappingRcd>();
 
-  produces<edm::DetSetVector<CTPPSPixelDigi>>();
+  produces<std::vector<CTPPSPixelDigi>>();
 
   isRun3_ = config_.getParameter<bool>("isRun3");
   includeErrors_ = config_.getParameter<bool>("includeErrors");
   mappingLabel_ = config_.getParameter<std::string>("mappingLabel");
 
   if (includeErrors_) {
-    produces<edm::DetSetVector<CTPPSPixelDataError>>();
+    produces<std::vector<CTPPSPixelDataError>>();
   }
 }
 
@@ -68,9 +68,9 @@ void CTPPSPixelRawToDigi::produce(edm::Event& ev, const edm::EventSetup& es) {
     }
   }
   /// create product (digis & errors)
-  auto collection = std::make_unique<edm::DetSetVector<CTPPSPixelDigi>>();
+  auto collection = std::make_unique<std::vector<CTPPSPixelDigi>>();
 
-  auto errorcollection = std::make_unique<edm::DetSetVector<CTPPSPixelDataError>>();
+  auto errorcollection = std::make_unique<std::vector<CTPPSPixelDataError>>();
 
   if (data_exist) {
     mapping = es.getHandle(CTPPSPixelDAQMapping_);
@@ -81,7 +81,7 @@ void CTPPSPixelRawToDigi::produce(edm::Event& ev, const edm::EventSetup& es) {
     formatter.setErrorStatus(includeErrors_);
 
     bool errorsInEvent = false;
-    CTPPSPixelDataFormatter::DetErrors nodeterrors;
+    std::vector<CTPPSPixelDataError> nodeterrors;
 
     for (auto aFed = fedIds_.begin(); aFed != fedIds_.end(); ++aFed) {
       int fedId = *aFed;
@@ -95,21 +95,20 @@ void CTPPSPixelRawToDigi::produce(edm::Event& ev, const edm::EventSetup& es) {
       formatter.interpretRawData(isRun3_, errorsInEvent, fedId, fedRawData, *collection, errors);
 
       if (includeErrors_) {
-        for (auto const& is : errors) {
-          uint32_t errordetid = is.first;
+        for (auto const& errorsByDetId : errors) {
+          uint32_t errordetid = errorsByDetId.first;
           /// errors given dummy detId must be sorted by Fed
           if (errordetid == RPixErrorChecker::dummyDetId) {
-            nodeterrors.insert(nodeterrors.end(), errors[errordetid].begin(), errors[errordetid].end());
+            nodeterrors.insert(nodeterrors.end(), errorsByDetId.second.begin(), errorsByDetId.second.end());
           } else {
-            edm::DetSet<CTPPSPixelDataError>& errorDetSet = errorcollection->find_or_insert(errordetid);
-            errorDetSet.data.insert(errorDetSet.data.end(), is.second.begin(), is.second.end());
+            errorcollection->insert(errorcollection->end(), errorsByDetId.second.begin(), errorsByDetId.second.end());
           }
         }
       }
     }
 
     if (includeErrors_) {
-      errorcollection->find_or_insert(RPixErrorChecker::dummyDetId).data = nodeterrors;
+      errorcollection->insert(errorcollection->end(), nodeterrors.begin(), nodeterrors.end());
     }
     if (errorsInEvent)
       LogDebug("CTPPSPixelRawToDigi") << "Error words were stored in this event";

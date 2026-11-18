@@ -34,7 +34,6 @@
 #include "DataFormats/CTPPSDigi/interface/CTPPSPixelDigi.h"
 #include "DataFormats/CTPPSDigi/interface/CTPPSPixelDataError.h"
 #include "CondFormats/PPSObjects/interface/CTPPSPixelDAQMapping.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 
 #include "EventFilter/CTPPSRawToDigi/interface/RPixErrorChecker.h"
 
@@ -54,7 +53,7 @@ class RPixErrorChecker;
 
 class CTPPSPixelDataFormatter {
 public:
-  typedef edm::DetSetVector<CTPPSPixelDigi> Collection;
+  typedef std::vector<CTPPSPixelDigi> Collection;
 
   typedef std::unordered_map<int, FEDRawData> RawData;
   typedef std::vector<CTPPSPixelDigi> DetDigis;

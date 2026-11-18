@@ -122,8 +122,6 @@ void CTPPSPixelDataFormatter::interpretRawData(
 
   bool skipROC = false;
 
-  edm::DetSet<CTPPSPixelDigi>* detDigis = nullptr;
-
   const Word32* bw = (const Word32*)(header + 1);
   const Word32* ew = (const Word32*)(trailer);
   if (*(ew - 1) == 0) {
@@ -191,11 +189,6 @@ void CTPPSPixelDataFormatter::interpretRawData(
         continue;
       }
 
-      auto rawId = rocp.rawId();
-
-      detDigis = &digis.find_or_insert(rawId);
-      if ((*detDigis).empty())
-        (*detDigis).data.reserve(32);  // avoid the first relocations
     }
 
     if (skipROC || rocp.rawId() == 0)
@@ -251,10 +244,7 @@ void CTPPSPixelDataFormatter::interpretRawData(
       modPixel = rocp.toGlobalfromDcol(rocPixel);
     }
 
-    CTPPSPixelDigi testdigi(modPixel.first, modPixel.second, adc);
-
-    if (detDigis)
-      (*detDigis).data.emplace_back(modPixel.first, modPixel.second, adc);
+    digis.emplace_back(modPixel.first, modPixel.second, adc, rocp.rawId());
   }
 }
 

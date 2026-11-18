@@ -69,9 +69,10 @@
     <version ClassVersion="3" checksum="508529379"/>
   </class>
 
-  <class name="io_v1::CTPPSPixelDigi" ClassVersion="3">
-    <version ClassVersion="3" checksum="1471863812"/>
+  <class name="io_v1::CTPPSPixelDigi" ClassVersion="4">
+    <version ClassVersion="4" checksum="2256434593"/>
   </class>
+  <class name="edm::Wrapper<std::vector<io_v1::CTPPSPixelDigi> >" splitLevel="0"/>
   <class name="CTPPSPixelDigiCollection" ClassVersion="3">
     <version ClassVersion="3" checksum="1772374030"/>
   </class>
@@ -85,8 +86,8 @@
   <class name="edm::Wrapper<CTPPSPixelDigiCollection>" splitLevel="0"/>
 
 
-  <class name="io_v1::CTPPSPixelDataError" ClassVersion="3">
-    <version ClassVersion="3" checksum="1033717510"/>
+  <class name="io_v1::CTPPSPixelDataError" ClassVersion="4">
+    <version ClassVersion="4" checksum="500767539"/>
   </class>
   <class name="std::vector<io_v1::CTPPSPixelDataError>"/>
   <class name="std::map<int, std::vector<io_v1::CTPPSPixelDataError> >"/>

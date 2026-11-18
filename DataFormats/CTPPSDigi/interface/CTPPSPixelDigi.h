@@ -6,26 +6,30 @@
  */
 
 #include "FWCore/Utilities/interface/Exception.h"
+#include <cstdint>
 
 namespace io_v1 {
   class CTPPSPixelDigi {
   public:
-    CTPPSPixelDigi(int packed_value) : theData(packed_value) {}
+    CTPPSPixelDigi(int packed_value) : theData(packed_value), detId_(0) {}
 
-    CTPPSPixelDigi(int row, int col, int adc) { init(row, col, adc); }
+    CTPPSPixelDigi(int row, int col, int adc) : CTPPSPixelDigi(row, col, adc, 0) {}
 
-    CTPPSPixelDigi(int chan, int adc) {
+    CTPPSPixelDigi(int row, int col, int adc, uint32_t detId) : theData(0), detId_(detId) { init(row, col, adc); }
+
+    CTPPSPixelDigi(int chan, int adc) : theData(0), detId_(0) {
       std::pair<int, int> rc = channelToPixel(chan);
       init(rc.first, rc.second, adc);
     }
 
-    CTPPSPixelDigi() : theData(0) {}
+    CTPPSPixelDigi() : theData(0), detId_(0) {}
 
     /// Access to digi information
     int row() const { return (theData >> row_shift) & row_mask; }
     int column() const { return (theData >> column_shift) & column_mask; }
     unsigned short adc() const { return (theData >> adc_shift) & adc_mask; }
     uint32_t packedData() const { return theData; }
+    uint32_t detId() const { return detId_; }
 
     static std::pair<int, int> channelToPixel(int ch) {
       int row = (ch >> column_width_ch) & row_mask_ch;
@@ -51,6 +55,7 @@ namespace io_v1 {
   private:
     void init(int row, int col, int adc);
     uint32_t theData;
+    uint32_t detId_;
   };
 
   /// Comparison operator
