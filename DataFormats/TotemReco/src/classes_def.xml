@@ -1,7 +1,8 @@
 <lcgdict>
-  <class name="io_v1::TotemT2Digi" ClassVersion="3">
-    <version ClassVersion="3" checksum="246842887"/>
+  <class name="io_v1::TotemT2Digi" ClassVersion="4">
+    <version ClassVersion="4" checksum="3402802044"/>
   </class>
+  <class name="edm::Wrapper<std::vector<io_v1::TotemT2Digi> >" splitLevel="0"/>
   <class name="edmNew::DetSet<io_v1::TotemT2Digi>"/>
   <class name="edmNew::DetSetVector<io_v1::TotemT2Digi>"/>
   <class name="edm::Wrapper<edmNew::DetSetVector<io_v1::TotemT2Digi> >"/>

@@ -35,7 +35,7 @@ TotemRPLocalTrack::TotemRPLocalTrack(double z0,
                                      const TVectorD &track_params_vector,
                                      const TMatrixD &par_covariance_matrix,
                                      double chiSquared)
-    : z0_(z0), chiSquared_(chiSquared), valid_(true) {
+  : detid_(0), z0_(z0), chiSquared_(chiSquared), valid_(true) {
   for (int i = 0; i < dimension; ++i) {
     track_params_vector_[i] = track_params_vector[i];
     for (int j = 0; j < dimension; ++j) {

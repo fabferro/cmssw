@@ -11,19 +11,18 @@
 
 #include "RecoPPS/Local/interface/TimingRecHitProducerAlgorithm.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDigi/interface/CTPPSDiamondDigi.h"
 #include "DataFormats/CTPPSReco/interface/CTPPSDiamondRecHit.h"
 
 #include "Geometry/VeryForwardGeometryBuilder/interface/CTPPSGeometry.h"
 
 class CTPPSDiamondRecHitProducerAlgorithm : public TimingRecHitProducerAlgorithm<CTPPSGeometry,
-                                                                                 edm::DetSetVector<CTPPSDiamondDigi>,
+                                                                                 std::vector<CTPPSDiamondDigi>,
                                                                                  std::vector<CTPPSDiamondRecHit> > {
 public:
   using TimingRecHitProducerAlgorithm::TimingRecHitProducerAlgorithm;
   void build(const CTPPSGeometry&,
-             const edm::DetSetVector<CTPPSDiamondDigi>&,
+             const std::vector<CTPPSDiamondDigi>&,
              std::vector<CTPPSDiamondRecHit>&) override;
 
 private:

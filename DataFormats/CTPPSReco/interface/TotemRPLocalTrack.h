@@ -10,7 +10,10 @@
 #ifndef DataFormats_CTPPSReco_TotemRPLocalTrack
 #define DataFormats_CTPPSReco_TotemRPLocalTrack
 
+#include <cstdint>
+
 #include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/CTPPSDetId/interface/CTPPSDetId.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPRecHit.h"
 
 #include "TVector3.h"
@@ -64,7 +67,7 @@ namespace io_v1 {
     ///< covariance matrix size
     static const int covarianceSize = dimension * dimension;
 
-    TotemRPLocalTrack() : z0_(0), chiSquared_(0), valid_(false) {}
+    TotemRPLocalTrack() : detid_(0), z0_(0), chiSquared_(0), valid_(false) {}
 
     TotemRPLocalTrack(double z0,
                       const TVectorD &track_params_vector,
@@ -72,6 +75,9 @@ namespace io_v1 {
                       double chiSquared);
 
     virtual ~TotemRPLocalTrack() {}
+
+    inline void setDetId(CTPPSDetId detid) { detid_ = detid.rawId(); }
+    inline CTPPSDetId detId() const { return CTPPSDetId(detid_); }
 
     inline const edm::DetSetVector<FittedRecHit> &hits() const { return track_hits_vector_; }
     inline void addHit(unsigned int detId, const FittedRecHit &hit) {
@@ -132,6 +138,8 @@ namespace io_v1 {
     friend bool operator<(const TotemRPLocalTrack &l, const TotemRPLocalTrack &r);
 
   private:
+    uint32_t detid_;
+
     inline const double &CovarianceMatrixElement(int i, int j) const {
       return par_covariance_matrix_[i * dimension + j];
     }

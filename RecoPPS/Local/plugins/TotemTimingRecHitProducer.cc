@@ -21,8 +21,6 @@
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Utilities/interface/ESGetToken.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
-#include "DataFormats/Common/interface/DetSet.h"
 
 #include "DataFormats/CTPPSDetId/interface/TotemTimingDetId.h"
 #include "DataFormats/CTPPSDigi/interface/TotemTimingDigi.h"
@@ -46,7 +44,7 @@ private:
   void produce(edm::Event&, const edm::EventSetup&) override;
 
   /// Input digi collection
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingDigi> > digiToken_;
+  edm::EDGetTokenT<std::vector<TotemTimingDigi>> digiToken_;
   ///EventSetup Tokens
   edm::ESGetToken<PPSTimingCalibration, PPSTimingCalibrationRcd> timingCalibrationToken_;
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> geometryToken_;
@@ -57,7 +55,7 @@ private:
 };
 
 TotemTimingRecHitProducer::TotemTimingRecHitProducer(const edm::ParameterSet& iConfig)
-    : digiToken_(consumes<edm::DetSetVector<TotemTimingDigi> >(iConfig.getParameter<edm::InputTag>("digiTag"))),
+    : digiToken_(consumes<std::vector<TotemTimingDigi>>(iConfig.getParameter<edm::InputTag>("digiTag"))),
       timingCalibrationToken_(esConsumes<PPSTimingCalibration, PPSTimingCalibrationRcd>(
           edm::ESInputTag(iConfig.getParameter<std::string>("timingCalibrationTag")))),
       geometryToken_(esConsumes<CTPPSGeometry, VeryForwardRealGeometryRecord>()),

@@ -16,8 +16,12 @@
 namespace io_v1 {
   class CTPPSDiamondDigi {
   public:
-    CTPPSDiamondDigi(
-        unsigned int ledgt_, unsigned int tedgt_, unsigned int threvolt, bool mhit_, unsigned short hptdcerror_);
+    CTPPSDiamondDigi(unsigned int ledgt_,
+             unsigned int tedgt_,
+             unsigned int threvolt,
+             bool mhit_,
+             unsigned short hptdcerror_,
+             uint32_t detId = 0);
     CTPPSDiamondDigi();
     ~CTPPSDiamondDigi() {}
 
@@ -35,6 +39,7 @@ namespace io_v1 {
     bool multipleHit() const { return mhit; }
 
     HPTDCErrorFlags hptdcErrorFlags() const { return hptdcerror; }
+    uint32_t detId() const { return detId_; }
 
     /// Set digi values
     inline void setLeadingEdge(unsigned int ledgt_) { ledgt = ledgt_; }
@@ -53,6 +58,7 @@ namespace io_v1 {
     // variable represents multi-hit
     bool mhit;
     HPTDCErrorFlags hptdcerror;
+    uint32_t detId_;
   };
 }  // namespace io_v1
 using CTPPSDiamondDigi = io_v1::CTPPSDiamondDigi;

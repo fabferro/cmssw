@@ -9,8 +9,11 @@
 #ifndef DataFormats_CTPPSReco_TotemRPUVPattern
 #define DataFormats_CTPPSReco_TotemRPUVPattern
 
+#include <cstdint>
+
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/CTPPSDetId/interface/CTPPSDetId.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPRecHit.h"
 
 /**
@@ -25,7 +28,10 @@ namespace io_v1 {
   public:
     enum ProjectionType { projInvalid, projU, projV };
 
-    TotemRPUVPattern() : projection_(projInvalid), a_(0.), b_(0.), w_(0.), fittable_(false) {}
+    TotemRPUVPattern() : detid_(0), projection_(projInvalid), a_(0.), b_(0.), w_(0.), fittable_(false) {}
+
+    void setDetId(CTPPSDetId detid) { detid_ = detid.rawId(); }
+    CTPPSDetId detId() const { return CTPPSDetId(detid_); }
 
     ProjectionType projection() const { return projection_; }
     void setProjection(ProjectionType type) { projection_ = type; }
@@ -49,6 +55,7 @@ namespace io_v1 {
     friend bool operator<(const TotemRPUVPattern &l, const TotemRPUVPattern &r);
 
   private:
+    uint32_t detid_;
     ProjectionType projection_;  ///< projection
     double a_;                   ///< slope in rad
     double b_;                   ///< intercept in mm

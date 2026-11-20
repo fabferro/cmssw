@@ -13,7 +13,6 @@
 
 #include "RecoPPS/Local/interface/TimingRecHitProducerAlgorithm.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDigi/interface/TotemTimingDigi.h"
 #include "DataFormats/CTPPSReco/interface/TotemTimingRecHit.h"
 
@@ -23,13 +22,13 @@
 
 class TotemTimingConversions;
 class TotemTimingRecHitProducerAlgorithm : public TimingRecHitProducerAlgorithm<CTPPSGeometry,
-                                                                                edm::DetSetVector<TotemTimingDigi>,
+                                                                                std::vector<TotemTimingDigi>,
                                                                                 std::vector<TotemTimingRecHit> > {
 public:
   explicit TotemTimingRecHitProducerAlgorithm(const edm::ParameterSet&);
 
   void setCalibration(const PPSTimingCalibration&);
-  void build(const CTPPSGeometry&, const edm::DetSetVector<TotemTimingDigi>&, std::vector<TotemTimingRecHit>&) override;
+  void build(const CTPPSGeometry&, const std::vector<TotemTimingDigi>&, std::vector<TotemTimingRecHit>&) override;
 
 private:
   struct RegressionResults {

@@ -40,7 +40,7 @@ private:
   static constexpr float HPTDC_TIME_SLICE_WIDTH = 25.;
 
   bool includeStrips_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPLocalTrack>> siStripTrackToken_;
+  edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> siStripTrackToken_;
 
   bool includeDiamonds_;
   edm::EDGetTokenT<std::vector<CTPPSDiamondLocalTrack>> diamondTrackToken_;
@@ -66,7 +66,7 @@ CTPPSLocalTrackLiteProducer::CTPPSLocalTrackLiteProducer(const edm::ParameterSet
       timingTrackTMax_(iConfig.getParameter<double>("timingTrackTMax")) {
   auto tagSiStripTrack = iConfig.getParameter<edm::InputTag>("tagSiStripTrack");
   if (!tagSiStripTrack.label().empty())
-    siStripTrackToken_ = consumes<edm::DetSetVector<TotemRPLocalTrack>>(tagSiStripTrack);
+    siStripTrackToken_ = consumes<std::vector<TotemRPLocalTrack>>(tagSiStripTrack);
 
   auto tagDiamondTrack = iConfig.getParameter<edm::InputTag>("tagDiamondTrack");
   if (!tagDiamondTrack.label().empty())
@@ -89,17 +89,16 @@ void CTPPSLocalTrackLiteProducer::produce(edm::Event &iEvent, const edm::EventSe
 
   // get input from Si strips
   if (includeStrips_) {
-    edm::Handle<edm::DetSetVector<TotemRPLocalTrack>> inputSiStripTracks;
+    edm::Handle<std::vector<TotemRPLocalTrack>> inputSiStripTracks;
     iEvent.getByToken(siStripTrackToken_, inputSiStripTracks);
 
     // process tracks from Si strips
-    for (const auto &rpv : *inputSiStripTracks) {
-      const uint32_t rpId = rpv.detId();
-      for (const auto &trk : rpv) {
-        if (!trk.isValid())
-          continue;
+    for (const auto &trk : *inputSiStripTracks) {
+      if (!trk.isValid())
+        continue;
+      const uint32_t rpId = trk.detId().rawId();
 
-        float roundedX0 = MiniFloatConverter::reduceMantissaToNbitsRounding<14>(trk.x0());
+      float roundedX0 = MiniFloatConverter::reduceMantissaToNbitsRounding<14>(trk.x0());
         float roundedX0Sigma = MiniFloatConverter::reduceMantissaToNbitsRounding<8>(trk.x0Sigma());
         float roundedY0 = MiniFloatConverter::reduceMantissaToNbitsRounding<13>(trk.y0());
         float roundedY0Sigma = MiniFloatConverter::reduceMantissaToNbitsRounding<8>(trk.y0Sigma());
@@ -109,7 +108,7 @@ void CTPPSLocalTrackLiteProducer::produce(edm::Event &iEvent, const edm::EventSe
         float roundedTySigma = MiniFloatConverter::reduceMantissaToNbitsRounding<8>(trk.tySigma());
         float roundedChiSquaredOverNDF = MiniFloatConverter::reduceMantissaToNbitsRounding<8>(trk.chiSquaredOverNDF());
 
-        pOut->emplace_back(rpId,  // detector info
+      pOut->emplace_back(rpId,  // detector info
                                   // spatial info
                            roundedX0,
                            roundedX0Sigma,
@@ -127,7 +126,6 @@ void CTPPSLocalTrackLiteProducer::produce(edm::Event &iEvent, const edm::EventSe
                            // timing info
                            0.,
                            0.);
-      }
     }
   }
 

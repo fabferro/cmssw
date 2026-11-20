@@ -27,6 +27,9 @@
 
 #include "RecoPPS/Local/interface/TotemRPLocalTrackFitterAlgorithm.h"
 
+#include <map>
+#include <vector>
+
 //----------------------------------------------------------------------------------------------------
 
 /**
@@ -47,7 +50,7 @@ private:
   /// Selection of the pattern-recognition module.
   edm::InputTag tagUVPattern;
 
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPUVPattern>> patternCollectionToken;
+  edm::EDGetTokenT<std::vector<TotemRPUVPattern>> patternCollectionToken;
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> geometryToken;
 
   /// A watcher to detect geometry changes.
@@ -68,10 +71,10 @@ using namespace edm;
 TotemRPLocalTrackFitter::TotemRPLocalTrackFitter(const edm::ParameterSet &conf)
     : verbosity_(conf.getParameter<int>("verbosity")), fitter_(conf) {
   tagUVPattern = conf.getParameter<edm::InputTag>("tagUVPattern");
-  patternCollectionToken = consumes<DetSetVector<TotemRPUVPattern>>(tagUVPattern);
+  patternCollectionToken = consumes<std::vector<TotemRPUVPattern>>(tagUVPattern);
   geometryToken = esConsumes<CTPPSGeometry, VeryForwardRealGeometryRecord>();
 
-  produces<DetSetVector<TotemRPLocalTrack>>();
+  produces<std::vector<TotemRPLocalTrack>>();
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -87,14 +90,18 @@ void TotemRPLocalTrackFitter::produce(edm::Event &e, const edm::EventSetup &setu
     fitter_.reset();
 
   // get input
-  edm::Handle<DetSetVector<TotemRPUVPattern>> input;
+  edm::Handle<std::vector<TotemRPUVPattern>> input;
   e.getByToken(patternCollectionToken, input);
 
-  // run fit for each RP
-  DetSetVector<TotemRPLocalTrack> output;
+  std::map<unsigned int, std::vector<TotemRPUVPattern>> patternsByRP;
+  for (const auto &pattern : *input)
+    patternsByRP[pattern.detId().rawId()].push_back(pattern);
 
-  for (const auto &rpv : *input) {
-    CTPPSDetId rpId(rpv.detId());
+  // run fit for each RP
+  std::vector<TotemRPLocalTrack> output;
+
+  for (const auto &[rpRawId, rpv] : patternsByRP) {
+    CTPPSDetId rpId(rpRawId);
 
     // is U-V association unique?
     unsigned int n_U = 0, n_V = 0;
@@ -157,9 +164,8 @@ void TotemRPLocalTrackFitter::produce(edm::Event &e, const edm::EventSetup &setu
 
     TotemRPLocalTrack track;
     fitter_.fitTrack(hits, z0, *geometry, track);
-
-    DetSet<TotemRPLocalTrack> &ds = output.find_or_insert(rpId);
-    ds.push_back(track);
+    track.setDetId(rpId);
+    output.emplace_back(std::move(track));
 
     if (verbosity_ > 5) {
       unsigned int n_hits = 0;
@@ -172,7 +178,7 @@ void TotemRPLocalTrackFitter::produce(edm::Event &e, const edm::EventSetup &setu
   }
 
   // save results
-  e.put(make_unique<DetSetVector<TotemRPLocalTrack>>(output));
+  e.put(make_unique<std::vector<TotemRPLocalTrack>>(std::move(output)));
 }
 
 //----------------------------------------------------------------------------------------------------

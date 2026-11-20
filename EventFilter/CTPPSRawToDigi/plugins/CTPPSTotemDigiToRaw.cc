@@ -74,7 +74,7 @@ private:
   int allWordCounter_;
   bool debug_;
   edm::ESWatcher<TotemReadoutRcd> recordWatcher_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPDigi>> tTotemRPDigi_;
+  edm::EDGetTokenT<std::vector<TotemRPDigi>> tTotemRPDigi_;
   edm::ESGetToken<TotemDAQMapping, TotemReadoutRcd> tTotemDAQMapping_;
   std::vector<CTPPSTotemDataFormatter::PPSStripIndex> v_iDdet2fed_;
   TotemFramePosition fPos_;
@@ -96,7 +96,7 @@ private:
 CTPPSTotemDigiToRaw::CTPPSTotemDigiToRaw(const edm::ParameterSet& iConfig)
     : eventCounter_(0), allDigiCounter_(0), allWordCounter_(0) {
   //register your products
-  tTotemRPDigi_ = consumes<edm::DetSetVector<TotemRPDigi>>(iConfig.getParameter<edm::InputTag>("InputLabel"));
+  tTotemRPDigi_ = consumes<std::vector<TotemRPDigi>>(iConfig.getParameter<edm::InputTag>("InputLabel"));
   tTotemDAQMapping_ = esConsumes<TotemDAQMapping, TotemReadoutRcd>();
   produces<FEDRawDataCollection>();
 }
@@ -115,16 +115,16 @@ void CTPPSTotemDigiToRaw::produce(edm::Event& iEvent, const edm::EventSetup& iSe
   using namespace std;
   eventCounter_++;
 
-  edm::Handle<edm::DetSetVector<TotemRPDigi>> digiCollection;
+  edm::Handle<std::vector<TotemRPDigi>> digiCollection;
   iEvent.getByToken(tTotemRPDigi_, digiCollection);
 
   CTPPSTotemDataFormatter::RawData rawdata;
   CTPPSTotemDataFormatter::Digis digis;
 
   int digiCounter = 0;
-  for (auto const& di : *digiCollection) {
-    digiCounter += (di.data).size();
-    digis[di.detId()] = di.data;
+  for (auto const& digi : *digiCollection) {
+    ++digiCounter;
+    digis[digi.detId()].push_back(digi);
   }
   allDigiCounter_ += digiCounter;
   edm::ESHandle<TotemDAQMapping> mapping;

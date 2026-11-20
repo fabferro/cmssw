@@ -1,7 +1,8 @@
 <lcgdict>
-  <class name="io_v1::TotemRPDigi" ClassVersion="3">
-    <version ClassVersion="3" checksum="3188050306"/>
+  <class name="io_v1::TotemRPDigi" ClassVersion="4">
+    <version ClassVersion="4" checksum="3400699023"/>
   </class>
+  <class name="edm::Wrapper<std::vector<io_v1::TotemRPDigi> >" splitLevel="0"/>
   <class name="edm::DetSet<io_v1::TotemRPDigi>"/>
   <class name="std::vector<edm::DetSet<io_v1::TotemRPDigi> >"/>
   <class name="std::vector<io_v1::TotemRPDigi>"/>
@@ -33,9 +34,10 @@
   <class name="std::vector<io_v1::TotemFEDInfo>"/>
   <class name="edm::Wrapper<std::vector<io_v1::TotemFEDInfo>>"/>
 
-  <class name="io_v1::CTPPSDiamondDigi" ClassVersion="3">
-    <version ClassVersion="3" checksum="2619218880"/>
+  <class name="io_v1::CTPPSDiamondDigi" ClassVersion="4">
+    <version ClassVersion="4" checksum="3687390781"/>
   </class>
+  <class name="edm::Wrapper<std::vector<io_v1::CTPPSDiamondDigi> >" splitLevel="0"/>
 
   <class name="edm::DetSet<io_v1::CTPPSDiamondDigi>"/>
   <class name="std::vector<edm::DetSet<io_v1::CTPPSDiamondDigi> >"/>
@@ -45,9 +47,10 @@
   <class name="edm::Wrapper<edm::DetSetVector<io_v1::CTPPSDiamondDigi> >"/>
 
 
-  <class name="io_v1::TotemTimingDigi" ClassVersion="3">
-    <version ClassVersion="3" checksum="3911274104"/>
+  <class name="io_v1::TotemTimingDigi" ClassVersion="4">
+    <version ClassVersion="4" checksum="3086273717"/>
   </class>
+  <class name="edm::Wrapper<std::vector<io_v1::TotemTimingDigi> >" splitLevel="0"/>
   <class name="edm::DetSet<io_v1::TotemTimingDigi>"/>
   <class name="std::vector<edm::DetSet<io_v1::TotemTimingDigi> >"/>
   <class name="std::vector<io_v1::TotemTimingDigi>"/>

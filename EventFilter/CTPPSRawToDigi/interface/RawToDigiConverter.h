@@ -13,7 +13,6 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
-#include "DataFormats/Common/interface/DetSetVectorNew.h"
 
 #include "EventFilter/CTPPSRawToDigi/interface/VFATFrameCollection.h"
 
@@ -35,28 +34,28 @@ public:
   void run(const VFATFrameCollection &coll,
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
-           edm::DetSetVector<TotemRPDigi> &digi,
+           std::vector<TotemRPDigi> &digi,
            edm::DetSetVector<TotemVFATStatus> &status);
 
   /// Creates Diamond digi.
   void run(const VFATFrameCollection &coll,
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
-           edm::DetSetVector<CTPPSDiamondDigi> &digi,
+           std::vector<CTPPSDiamondDigi> &digi,
            edm::DetSetVector<TotemVFATStatus> &status);
 
   /// Creates Totem Timing digi.
   void run(const VFATFrameCollection &coll,
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
-           edm::DetSetVector<TotemTimingDigi> &digi,
+           std::vector<TotemTimingDigi> &digi,
            edm::DetSetVector<TotemVFATStatus> &status);
 
   /// Creates Totem T2 digi
   void run(const VFATFrameCollection &coll,
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
-           edmNew::DetSetVector<TotemT2Digi> &digi,
+           std::vector<TotemT2Digi> &digi,
            edm::DetSetVector<TotemVFATStatus> &status);
 
   /// Print error summaries.

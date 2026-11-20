@@ -32,7 +32,6 @@
 
 #include "DataFormats/CTPPSDigi/interface/TotemTimingDigi.h"
 #include "DataFormats/CTPPSDetId/interface/TotemTimingDetId.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDetId/interface/CTPPSDiamondDetId.h"
 
 #include "TFile.h"
@@ -82,7 +81,7 @@ DiamondSampicDigiProducer::DiamondSampicDigiProducer(const edm::ParameterSet& iC
   for (const auto& fname : sampicFilesVec_)
     inputTree_->Add(fname.c_str());
 
-  produces<DetSetVector<TotemTimingDigi>>("TotemTiming");
+  produces<std::vector<TotemTimingDigi>>("TotemTiming");
 }
 
 //
@@ -91,7 +90,7 @@ DiamondSampicDigiProducer::DiamondSampicDigiProducer(const edm::ParameterSet& iC
 
 void DiamondSampicDigiProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   int eventNum = iEvent.id().event();
-  auto digi = std::make_unique<edm::DetSetVector<TotemTimingDigi>>();
+  auto digi = std::make_unique<std::vector<TotemTimingDigi>>();
 
   uint num_samples;
   double trigger_time;
@@ -163,8 +162,8 @@ void DiamondSampicDigiProducer::produce(edm::Event& iEvent, const edm::EventSetu
     auto vec = detid_vs_chid_.at(ch_id);
     for (const auto& id : vec) {
       CTPPSDiamondDetId detId(id);
-      edm::DetSet<TotemTimingDigi>& digis_for_detid = digi->find_or_insert(detId);
-      digis_for_detid.push_back(digiTmp);
+      digiTmp.setDetId(detId.rawId());
+      digi->push_back(digiTmp);
     }
   }
   iEvent.put(std::move(digi), "TotemTiming");

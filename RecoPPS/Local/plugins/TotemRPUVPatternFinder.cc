@@ -45,7 +45,7 @@ public:
 
 private:
   edm::InputTag tagRecHit;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPRecHit>> detSetVectorTotemRPRecHitToken;
+  edm::EDGetTokenT<std::vector<TotemRPRecHit>> recHitToken;
 
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> ctppsGeometryToken;
   edm::ESWatcher<VeryForwardRealGeometryRecord> geometryWatcher;
@@ -84,8 +84,9 @@ private:
                           double z0,
                           double threshold,
                           unsigned int planes_required,
+                          CTPPSDetId rpId,
                           const edm::DetSetVector<TotemRPRecHit> &hits,
-                          edm::DetSet<TotemRPUVPattern> &patterns);
+                          std::vector<TotemRPUVPattern> &patterns);
 };
 
 //----------------------------------------------------------------------------------------------------
@@ -118,9 +119,9 @@ TotemRPUVPatternFinder::TotemRPUVPatternFinder(const edm::ParameterSet &conf)
     exceptionalSettings[rpId] = settings;
   }
 
-  detSetVectorTotemRPRecHitToken = consumes<edm::DetSetVector<TotemRPRecHit>>(tagRecHit);
+  recHitToken = consumes<std::vector<TotemRPRecHit>>(tagRecHit);
 
-  produces<DetSetVector<TotemRPUVPattern>>();
+  produces<std::vector<TotemRPUVPattern>>();
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -133,14 +134,16 @@ void TotemRPUVPatternFinder::recognizeAndSelect(TotemRPUVPattern::ProjectionType
                                                 double z0,
                                                 double threshold_loc,
                                                 unsigned int planes_required,
+                                                CTPPSDetId rpId,
                                                 const DetSetVector<TotemRPRecHit> &hits,
-                                                DetSet<TotemRPUVPattern> &patterns) {
+                                                std::vector<TotemRPUVPattern> &patterns) {
   // run recognition
   DetSet<TotemRPUVPattern> newPatterns;
   lrcgn->getPatterns(hits, z0, threshold_loc, newPatterns);
 
   // set pattern properties and copy to the global pattern collection
   for (auto &p : newPatterns) {
+    p.setDetId(rpId);
     p.setProjection(proj);
 
     p.setFittable(true);
@@ -172,11 +175,11 @@ void TotemRPUVPatternFinder::produce(edm::Event &event, const edm::EventSetup &e
     lrcgn->resetGeometry(&geometry);
 
   // get input
-  edm::Handle<edm::DetSetVector<TotemRPRecHit>> input;
-  event.getByToken(detSetVectorTotemRPRecHitToken, input);
+  edm::Handle<std::vector<TotemRPRecHit>> input;
+  event.getByToken(recHitToken, input);
 
   // prepare output
-  DetSetVector<TotemRPUVPattern> patternsVector;
+  std::vector<TotemRPUVPattern> patternsVector;
 
   // split input per RP and per U/V projection
   struct RPData {
@@ -185,8 +188,9 @@ void TotemRPUVPatternFinder::produce(edm::Event &event, const edm::EventSetup &e
   };
   map<unsigned int, RPData> rpData;
 
-  for (auto &ids : *input) {
-    TotemRPDetId detId(ids.detId());
+  for (const auto &hit : *input) {
+    TotemRPDetId detId = hit.detId();
+    unsigned int rawDetId = detId.rawId();
     unsigned int plane = detId.plane();
     bool uDir = detId.isStripsCoordinateUDirection();
 
@@ -194,16 +198,14 @@ void TotemRPUVPatternFinder::produce(edm::Event &event, const edm::EventSetup &e
 
     RPData &data = rpData[rpId];
 
-    for (auto &h : ids) {
-      if (uDir) {
-        auto &ods = data.hits_U.find_or_insert(ids.detId());
-        ods.push_back(h);
-        data.planeOccupancy_U[plane]++;
-      } else {
-        auto &ods = data.hits_V.find_or_insert(ids.detId());
-        ods.push_back(h);
-        data.planeOccupancy_V[plane]++;
-      }
+    if (uDir) {
+      auto &ods = data.hits_U.find_or_insert(rawDetId);
+      ods.push_back(hit);
+      data.planeOccupancy_U[plane]++;
+    } else {
+      auto &ods = data.hits_V.find_or_insert(rawDetId);
+      ods.push_back(hit);
+      data.planeOccupancy_V[plane]++;
     }
   }
 
@@ -252,15 +254,17 @@ void TotemRPUVPatternFinder::produce(edm::Event &event, const edm::EventSetup &e
       continue;
 
     // prepare data containers
-    DetSet<TotemRPUVPattern> &patterns = patternsVector.find_or_insert(rpId);
+    std::vector<TotemRPUVPattern> patterns;
 
     // "typical" z0 for the RP
     double z0 = geometry.rp(rpId)->translation().z();
 
     // u then v recognition
-    recognizeAndSelect(TotemRPUVPattern::projU, z0, threshold_U, minPlanesPerProjectionToFit_U, data.hits_U, patterns);
+    recognizeAndSelect(
+      TotemRPUVPattern::projU, z0, threshold_U, minPlanesPerProjectionToFit_U, rpId, data.hits_U, patterns);
 
-    recognizeAndSelect(TotemRPUVPattern::projV, z0, threshold_V, minPlanesPerProjectionToFit_V, data.hits_V, patterns);
+    recognizeAndSelect(
+      TotemRPUVPattern::projV, z0, threshold_V, minPlanesPerProjectionToFit_V, rpId, data.hits_V, patterns);
 
     if (verbosity > 5) {
       LogVerbatim("TotemRPUVPatternFinder") << "\t\tpatterns:";
@@ -274,10 +278,12 @@ void TotemRPUVPatternFinder::produce(edm::Event &event, const edm::EventSetup &e
             << ", b = " << p.b() << ", w = " << p.w() << ", fittable = " << p.fittable() << ", hits = " << n_hits;
       }
     }
+
+    patternsVector.insert(patternsVector.end(), patterns.begin(), patterns.end());
   }
 
   // save output
-  event.put(make_unique<DetSetVector<TotemRPUVPattern>>(patternsVector));
+  event.put(make_unique<std::vector<TotemRPUVPattern>>(std::move(patternsVector)));
 }
 
 //----------------------------------------------------------------------------------------------------

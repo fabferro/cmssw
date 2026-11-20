@@ -21,6 +21,9 @@
 
 #include "RecoPPS/Local/interface/TotemRPRecHitProducerAlgorithm.h"
 
+#include <map>
+#include <vector>
+
 //----------------------------------------------------------------------------------------------------
 
 class TotemRPRecHitProducer : public edm::stream::EDProducer<> {
@@ -39,7 +42,7 @@ private:
   TotemRPRecHitProducerAlgorithm algorithm_;
 
   edm::InputTag tagCluster_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPCluster>> tokenCluster_;
+  edm::EDGetTokenT<std::vector<TotemRPCluster>> tokenCluster_;
 };
 
 //----------------------------------------------------------------------------------------------------
@@ -54,29 +57,24 @@ TotemRPRecHitProducer::TotemRPRecHitProducer(const edm::ParameterSet& conf) : co
   verbosity_ = conf.getParameter<int>("verbosity");
 
   tagCluster_ = conf.getParameter<edm::InputTag>("tagCluster");
-  tokenCluster_ = consumes<edm::DetSetVector<TotemRPCluster>>(tagCluster_);
+  tokenCluster_ = consumes<std::vector<TotemRPCluster>>(tagCluster_);
 
-  produces<edm::DetSetVector<TotemRPRecHit>>();
+  produces<std::vector<TotemRPRecHit>>();
 }
 
 //----------------------------------------------------------------------------------------------------
 
 void TotemRPRecHitProducer::produce(edm::Event& e, const edm::EventSetup& es) {
   // get input
-  edm::Handle<edm::DetSetVector<TotemRPCluster>> input;
+  edm::Handle<std::vector<TotemRPCluster>> input;
   e.getByToken(tokenCluster_, input);
 
-  // prepare output
-  DetSetVector<TotemRPRecHit> output;
-
-  // build reco hits
-  for (auto& ids : *input) {
-    DetSet<TotemRPRecHit>& ods = output.find_or_insert(ids.detId());
-    algorithm_.buildRecoHits(ids, ods);
-  }
+  std::vector<TotemRPRecHit> output;
+  output.reserve(input->size());
+  algorithm_.buildRecoHits(*input, output);
 
   // save output
-  e.put(make_unique<DetSetVector<TotemRPRecHit>>(output));
+  e.put(make_unique<std::vector<TotemRPRecHit>>(std::move(output)));
 }
 
 //----------------------------------------------------------------------------------------------------

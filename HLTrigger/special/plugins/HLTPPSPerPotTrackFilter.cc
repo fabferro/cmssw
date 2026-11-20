@@ -39,7 +39,7 @@ public:
 
 private:
   edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelLocalTrackToken_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPLocalTrack>> stripLocalTrackToken_;
+  edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> stripLocalTrackToken_;
   edm::EDGetTokenT<edm::DetSetVector<CTPPSDiamondLocalTrack>> diamondLocalTrackToken_;
 
   struct PerPotFilter {
@@ -113,7 +113,7 @@ HLTPPSPerPotTrackFilter::HLTPPSPerPotTrackFilter(const edm::ParameterSet& iConfi
   const auto& stripVPset = iConfig.getParameter<std::vector<edm::ParameterSet>>("stripFilter");
   if (!stripVPset.empty()) {
     stripLocalTrackToken_ =
-        consumes<edm::DetSetVector<TotemRPLocalTrack>>(iConfig.getParameter<edm::InputTag>("stripLocalTrackInputTag"));
+      consumes<std::vector<TotemRPLocalTrack>>(iConfig.getParameter<edm::InputTag>("stripLocalTrackInputTag"));
     for (const auto& pset : stripVPset)
       strip_filter_[pset.getParameter<unsigned int>("detid")] =
           PerPotFilter{pset.getParameter<int>("minTracks"), pset.getParameter<int>("maxTracks")};
@@ -150,15 +150,21 @@ bool HLTPPSPerPotTrackFilter::filter(edm::StreamID, edm::Event& iEvent, const ed
 
   // Then filter on strips
   if (!strip_filter_.empty()) {
-    edm::Handle<edm::DetSetVector<TotemRPLocalTrack>> stripTracks;
+    edm::Handle<std::vector<TotemRPLocalTrack>> stripTracks;
     iEvent.getByToken(stripLocalTrackToken_, stripTracks);
 
-    for (const auto& rpv : *stripTracks) {
-      if (strip_filter_.count(rpv.id) == 0)
+    std::unordered_map<uint32_t, int> tracksPerPot;
+    for (const auto& track : *stripTracks) {
+      const uint32_t rpId = track.detId().rawId();
+      if (strip_filter_.count(rpId) == 0)
         continue;
-      const auto& fltr = strip_filter_.at(rpv.id);
+      int &ntrks = tracksPerPot[rpId];
+      if (valid_trks_(track))
+        ++ntrks;
+    }
 
-      const auto ntrks = std::count_if(rpv.begin(), rpv.end(), valid_trks_);
+    for (const auto& [rpId, ntrks] : tracksPerPot) {
+      const auto& fltr = strip_filter_.at(rpId);
       if (fltr.minTracks > 0 && ntrks < fltr.minTracks)
         return false;
       if (fltr.maxTracks > 0 && ntrks > fltr.maxTracks)

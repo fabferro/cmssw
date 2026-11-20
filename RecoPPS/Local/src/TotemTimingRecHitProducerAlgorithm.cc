@@ -38,10 +38,10 @@ void TotemTimingRecHitProducerAlgorithm::setCalibration(const PPSTimingCalibrati
 //----------------------------------------------------------------------------------------------------
 
 void TotemTimingRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
-                                               const edm::DetSetVector<TotemTimingDigi>& input,
+                                               const std::vector<TotemTimingDigi>& input,
                                                std::vector<TotemTimingRecHit>& output) {
-  for (const auto& vec : input) {
-    const CTPPSDetId detid(vec.detId());
+  for (const auto& digi : input) {
+    const CTPPSDetId detid(digi.detId());
 
     float x_pos = 0.f, y_pos = 0.f, z_pos = 0.f;
     float x_width = 0.f, y_width = 0.f, z_width = 0.f;
@@ -61,10 +61,10 @@ void TotemTimingRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
     } else
       throw cms::Exception("TotemTimingRecHitProducerAlgorithm") << "Failed to retrieve a sensor for " << detid;
 
-    if (!sampicConversions_)
+    if (!sampicConversions_) {
       throw cms::Exception("TotemTimingRecHitProducerAlgorithm") << "No timing conversion retrieved.";
+    }
 
-    for (const auto& digi : vec) {
       const float triggerCellTimeInstant(sampicConversions_->triggerTime(digi));
       const float timePrecision(sampicConversions_->timePrecision(digi));
       const std::vector<float> time(sampicConversions_->timeSamples(digi));
@@ -108,7 +108,6 @@ void TotemTimingRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
                                          baselineRegression.rms,
                                          mode_);
       rechit.setDetId(detid);
-    }
   }
 }
 

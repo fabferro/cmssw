@@ -14,10 +14,10 @@
 //----------------------------------------------------------------------------------------------------
 
 void CTPPSDiamondRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
-                                                const edm::DetSetVector<CTPPSDiamondDigi>& input,
+                                                const std::vector<CTPPSDiamondDigi>& input,
                                                 std::vector<CTPPSDiamondRecHit>& output) {
-  for (const auto& vec : input) {
-    const CTPPSDiamondDetId detid(vec.detId());
+  for (const auto& digi : input) {
+    const CTPPSDiamondDetId detid(digi.detId());
 
     if (detid.channel() > MAX_CHANNEL)  // VFAT-like information, to be ignored
       continue;
@@ -50,7 +50,6 @@ void CTPPSDiamondRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
     const double ch_t_offset = (apply_calib_) ? calib_->timeOffset(sector, station, plane, channel) : 0.;
     const double ch_t_precis = (apply_calib_) ? calib_->timePrecision(sector, station, plane, channel) : 0.;
 
-    for (const auto& digi : vec) {
       const int t_lead = digi.leadingEdge(), t_trail = digi.trailingEdge();
       // skip invalid digis
       if (t_lead == 0 && t_trail == 0)
@@ -89,6 +88,5 @@ void CTPPSDiamondRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
           digi.hptdcErrorFlags(),
           digi.multipleHit());
       rechit.setDetId(detid);
-    }
   }
 }

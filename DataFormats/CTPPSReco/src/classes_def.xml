@@ -2,48 +2,55 @@
 
 <!-- strips objects -->
 
-  <class name="io_v1::TotemRPCluster" ClassVersion="3">
+  <class name="io_v1::TotemRPCluster" ClassVersion="6">
     <version ClassVersion="3" checksum="4086268588"/>
+    <version ClassVersion="4" checksum="4086268588"/>
+    <version ClassVersion="5" checksum="551078096"/>
+    <version ClassVersion="6" checksum="939356657"/>
   </class>
-  <class name="edm::DetSet<io_v1::TotemRPCluster>"/>
   <class name="std::vector<io_v1::TotemRPCluster>"/>
-  <class name="std::vector<edm::DetSet<io_v1::TotemRPCluster> >"/>
-  <class name="edm::DetSetVector<io_v1::TotemRPCluster>"/>
-  <class name="edm::Wrapper<edm::DetSetVector<io_v1::TotemRPCluster> >"/>
+  <class name="edm::Wrapper<std::vector<io_v1::TotemRPCluster> >"/>
 
-  <class name="io_v1::TotemRPRecHit" ClassVersion="3">
+  <class name="io_v1::TotemRPRecHit" ClassVersion="6">
     <version ClassVersion="3" checksum="3166479784"/>
+    <version ClassVersion="4" checksum="3166479784"/>
+    <version ClassVersion="5" checksum="23733564"/>
+    <version ClassVersion="6" checksum="322451591"/>
   </class>
   <class name="edm::DetSet<io_v1::TotemRPRecHit>"/>
   <class name="edm::DetSetVector<io_v1::TotemRPRecHit>"/>
   <class name="std::vector<edm::DetSet<io_v1::TotemRPRecHit> >"/>
   <class name="edm::Wrapper<edm::DetSetVector<io_v1::TotemRPRecHit> >"/>
   <class name="std::vector<io_v1::TotemRPRecHit>"/>
+  <class name="edm::Wrapper<std::vector<io_v1::TotemRPRecHit> >"/>
   <class name="std::vector<const io_v1::TotemRPRecHit*>"/>
   <class name="std::map<int, edm::DetSetVector<io_v1::TotemRPRecHit>>"/>
   <class name="std::pair<const int, edm::DetSetVector<io_v1::TotemRPRecHit>>"/>
   <class name="edm::Wrapper<std::map<int, edm::DetSetVector<io_v1::TotemRPRecHit>>>"/>
 
-  <class name="io_v1::TotemRPUVPattern" ClassVersion="3">
+  <class name="io_v1::TotemRPUVPattern" ClassVersion="5">
     <version ClassVersion="3" checksum="2310454009"/>
+    <version ClassVersion="4" checksum="1790898958"/>
+    <version ClassVersion="5" checksum="1722253734"/>
   </class>
+  <class name="edm::Wrapper<std::vector<io_v1::TotemRPUVPattern> >"/>
   <class name="edm::DetSet<io_v1::TotemRPUVPattern>"/>
   <class name="std::vector<io_v1::TotemRPUVPattern>"/>
   <class name="std::vector<edm::DetSet<io_v1::TotemRPUVPattern> >"/>
-  <class name="edm::DetSetVector<io_v1::TotemRPUVPattern>"/>
-  <class name="edm::Wrapper<edm::DetSetVector<io_v1::TotemRPUVPattern>>"/>
 
-  <class name="io_v1::TotemRPLocalTrack" ClassVersion="3">
+  <class name="io_v1::TotemRPLocalTrack" ClassVersion="5">
     <version ClassVersion="3" checksum="150243101"/>
+    <version ClassVersion="4" checksum="393970964"/>
+    <version ClassVersion="5" checksum="1830475908"/>
   </class>
-  <class name="edm::DetSet<io_v1::TotemRPLocalTrack>"/>
   <class name="std::vector<io_v1::TotemRPLocalTrack>"/>
-  <class name="std::vector<edm::DetSet<io_v1::TotemRPLocalTrack> >"/>
-  <class name="edm::DetSetVector<io_v1::TotemRPLocalTrack>"/>
-  <class name="edm::Wrapper<edm::DetSetVector<io_v1::TotemRPLocalTrack>>"/>
+  <class name="edm::Wrapper<std::vector<io_v1::TotemRPLocalTrack> >"/>
   <!-- FittedRecHit holds a TVector3 which RNTuple can not handle -->
-  <class name="io_v1::TotemRPLocalTrack::FittedRecHit" ClassVersion="3" rntupleStreamerMode="true">
+  <class name="io_v1::TotemRPLocalTrack::FittedRecHit" ClassVersion="6" rntupleStreamerMode="true">
     <version ClassVersion="3" checksum="870597466"/>
+    <version ClassVersion="4" checksum="870597466"/>
+    <version ClassVersion="5" checksum="754853334"/>
+    <version ClassVersion="6" checksum="594329543"/>
   </class>
   <class name="edm::DetSet<io_v1::TotemRPLocalTrack::FittedRecHit>"/>
   <class name="edm::DetSetVector<io_v1::TotemRPLocalTrack::FittedRecHit>"/>

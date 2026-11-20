@@ -9,7 +9,6 @@
 #define EventFilter_CTPPSRawToDigi_CTPPSTotemDataFormatter_h
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 
 #include "CondFormats/PPSObjects/interface/TotemDAQMapping.h"
 

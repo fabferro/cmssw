@@ -16,13 +16,15 @@
 namespace io_v1 {
   class TotemRPDigi {
   public:
-    TotemRPDigi(unsigned short strip_no = 0) : strip_no_(strip_no) {}
+    TotemRPDigi(unsigned short strip_no = 0, uint32_t detId = 0) : strip_no_(strip_no), detId_(detId) {}
 
     unsigned short stripNumber() const { return strip_no_; }
+    uint32_t detId() const { return detId_; }
 
   private:
     /// index of the activated strip
     unsigned short strip_no_;
+    uint32_t detId_;
   };
 
   inline bool operator<(const TotemRPDigi& one, const TotemRPDigi& other) {

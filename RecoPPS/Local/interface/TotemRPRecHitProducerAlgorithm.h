@@ -18,11 +18,13 @@
 
 #include "Geometry/VeryForwardRPTopology/interface/RPTopology.h"
 
+#include <vector>
+
 class TotemRPRecHitProducerAlgorithm {
 public:
   TotemRPRecHitProducerAlgorithm(const edm::ParameterSet& conf) {}
 
-  void buildRecoHits(const edm::DetSet<TotemRPCluster>& input, edm::DetSet<TotemRPRecHit>& output);
+  void buildRecoHits(const std::vector<TotemRPCluster>& input, std::vector<TotemRPRecHit>& output);
 
 private:
   RPTopology rp_topology_;

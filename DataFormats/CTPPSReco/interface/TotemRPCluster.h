@@ -11,6 +11,7 @@
 #define DataFormats_CTPPSReco_TotemRPCluster
 
 #include <cstdint>
+#include "DataFormats/CTPPSDetId/interface/TotemRPDetId.h"
 
 /**
  *\brief Cluster of TOTEM RP strip hits.
@@ -19,6 +20,9 @@ namespace io_v1 {
   class TotemRPCluster {
   public:
     TotemRPCluster(unsigned short str_beg = 0, unsigned short str_end = 0) : str_beg_(str_beg), str_end_(str_end) {}
+
+    inline void setDetId(TotemRPDetId detid) { detid_ = detid.rawId(); }
+    inline TotemRPDetId detId() const { return TotemRPDetId(detid_); }
 
     inline uint16_t stripBegin() const { return str_beg_; }
     inline void setStripBegin(unsigned short str_beg) { str_beg_ = str_beg; }
@@ -31,6 +35,7 @@ namespace io_v1 {
     inline double centerStripPosition() const { return (str_beg_ + str_end_) / 2.; }
 
   private:
+    uint32_t detid_ = 0;
     uint16_t str_beg_;
     uint16_t str_end_;
   };

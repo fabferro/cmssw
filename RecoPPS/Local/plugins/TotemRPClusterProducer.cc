@@ -14,6 +14,9 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
+#include <map>
+#include <vector>
+
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/CTPPSDigi/interface/TotemRPDigi.h"
@@ -38,11 +41,11 @@ private:
   edm::ParameterSet conf_;
   int verbosity_;
   edm::InputTag digiInputTag_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPDigi>> digiInputTagToken_;
+  edm::EDGetTokenT<std::vector<TotemRPDigi>> digiInputTagToken_;
 
   TotemRPClusterProducerAlgorithm algorithm_;
 
-  void run(const edm::DetSetVector<TotemRPDigi>& input, edm::DetSetVector<TotemRPCluster>& output);
+  void run(const std::vector<TotemRPDigi>& input, std::vector<TotemRPCluster>& output);
 };
 
 //----------------------------------------------------------------------------------------------------
@@ -57,37 +60,44 @@ TotemRPClusterProducer::TotemRPClusterProducer(edm::ParameterSet const& conf) : 
   verbosity_ = conf.getParameter<int>("verbosity");
 
   digiInputTag_ = conf.getParameter<edm::InputTag>("tagDigi");
-  digiInputTagToken_ = consumes<edm::DetSetVector<TotemRPDigi>>(digiInputTag_);
+  digiInputTagToken_ = consumes<std::vector<TotemRPDigi>>(digiInputTag_);
 
-  produces<edm::DetSetVector<TotemRPCluster>>();
+  produces<std::vector<TotemRPCluster>>();
 }
 
 //----------------------------------------------------------------------------------------------------
 
 void TotemRPClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) {
   // get input
-  edm::Handle<edm::DetSetVector<TotemRPDigi>> input;
+  edm::Handle<std::vector<TotemRPDigi>> input;
   e.getByToken(digiInputTagToken_, input);
 
   // prepare output
-  DetSetVector<TotemRPCluster> output;
+  std::vector<TotemRPCluster> output;
 
   // run clusterisation
   if (!input->empty())
     run(*input, output);
 
   // save output to event
-  e.put(make_unique<DetSetVector<TotemRPCluster>>(output));
+  e.put(make_unique<std::vector<TotemRPCluster>>(std::move(output)));
 }
 
 //----------------------------------------------------------------------------------------------------
 
-void TotemRPClusterProducer::run(const edm::DetSetVector<TotemRPDigi>& input,
-                                 edm::DetSetVector<TotemRPCluster>& output) {
-  for (const auto& ds_digi : input) {
-    edm::DetSet<TotemRPCluster>& ds_cluster = output.find_or_insert(ds_digi.id);
+void TotemRPClusterProducer::run(const std::vector<TotemRPDigi>& input,
+                                 std::vector<TotemRPCluster>& output) {
+  std::map<uint32_t, std::vector<TotemRPDigi>> digisByDetId;
+  for (const auto& digi : input)
+    digisByDetId[digi.detId()].push_back(digi);
 
-    algorithm_.buildClusters(ds_digi.id, ds_digi.data, ds_cluster.data);
+  for (const auto& [detId, digis] : digisByDetId) {
+    std::vector<TotemRPCluster> clusters;
+    algorithm_.buildClusters(detId, digis, clusters);
+    for (auto& cluster : clusters) {
+      cluster.setDetId(TotemRPDetId(detId));
+      output.emplace_back(std::move(cluster));
+    }
   }
 }
 

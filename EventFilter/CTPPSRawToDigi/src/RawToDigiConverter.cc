@@ -190,7 +190,7 @@ void RawToDigiConverter::runCommon(const VFATFrameCollection &input,
 void RawToDigiConverter::run(const VFATFrameCollection &input,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &analysisMask,
-                             DetSetVector<TotemRPDigi> &rpData,
+                             std::vector<TotemRPDigi> &rpData,
                              DetSetVector<TotemVFATStatus> &finalStatus) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
@@ -233,8 +233,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &input,
       for (auto ch : activeChannels) {
         // skip masked channels
         if (!anMa.fullMask && anMa.maskedChannels.find(ch) == anMa.maskedChannels.end()) {
-          DetSet<TotemRPDigi> &digiDetSet = rpData.find_or_insert(detId);
-          digiDetSet.emplace_back(offset + ch);
+          rpData.emplace_back(offset + ch, detId.rawId());
         }
       }
     }
@@ -248,7 +247,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &input,
 void RawToDigiConverter::run(const VFATFrameCollection &coll,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &mask,
-                             edm::DetSetVector<CTPPSDiamondDigi> &digi,
+                             std::vector<CTPPSDiamondDigi> &digi,
                              edm::DetSetVector<TotemVFATStatus> &status) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
@@ -268,12 +267,12 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
       record.status.setEC(record.frame->getEC() & 0xFF);
 
       // create the digi
-      DetSet<CTPPSDiamondDigi> &digiDetSet = digi.find_or_insert(detId);
-      digiDetSet.emplace_back(pps::diamond::vfat::getLeadingEdgeTime(*record.frame),
-                              pps::diamond::vfat::getTrailingEdgeTime(*record.frame),
-                              pps::diamond::vfat::getThresholdVoltage(*record.frame),
-                              pps::diamond::vfat::getMultihit(*record.frame),
-                              pps::diamond::vfat::getHptdcErrorFlag(*record.frame));
+      digi.emplace_back(pps::diamond::vfat::getLeadingEdgeTime(*record.frame),
+            pps::diamond::vfat::getTrailingEdgeTime(*record.frame),
+            pps::diamond::vfat::getThresholdVoltage(*record.frame),
+            pps::diamond::vfat::getMultihit(*record.frame),
+            pps::diamond::vfat::getHptdcErrorFlag(*record.frame),
+            detId.rawId());
     }
 
     // save status
@@ -285,7 +284,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
 void RawToDigiConverter::run(const VFATFrameCollection &coll,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &mask,
-                             edm::DetSetVector<TotemTimingDigi> &digi,
+                             std::vector<TotemTimingDigi> &digi,
                              edm::DetSetVector<TotemVFATStatus> &status) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
@@ -382,8 +381,8 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
             detId.setChannel(HWchannel);
           }
 
-          DetSet<TotemTimingDigi> &digiDetSet = digi.find_or_insert(detId);
-          digiDetSet.push_back(digiTmp);
+          digiTmp.setDetId(detId.rawId());
+          digi.push_back(std::move(digiTmp));
         }
       }
     }
@@ -393,7 +392,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
 void RawToDigiConverter::run(const VFATFrameCollection &coll,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &mask,
-                             edmNew::DetSetVector<TotemT2Digi> &digi,
+                             std::vector<TotemT2Digi> &digi,
                              edm::DetSetVector<TotemVFATStatus> &status) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
@@ -435,12 +434,12 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
         if (const uint16_t hw_id = totem::nt2::vfat::newChannelId(*record.frame, frame_id) >> T2shiftOld;
             hw_id == record.info->hwID) {  // only unpack the payload associated to this hardware ID
           // create the digi
-          edmNew::DetSetVector<TotemT2Digi>::FastFiller(digi, detId)
-              .emplace_back(hw_id,
-                            totem::nt2::vfat::channelMarker(*record.frame, frame_id),
-                            totem::nt2::vfat::leadingEdgeTime(*record.frame, frame_id),
-                            totem::nt2::vfat::trailingEdgeTime(*record.frame, frame_id),
-                            totem::nt2::vfat::statusMarker(*record.frame));
+            digi.emplace_back(hw_id,
+                    totem::nt2::vfat::channelMarker(*record.frame, frame_id),
+                    totem::nt2::vfat::leadingEdgeTime(*record.frame, frame_id),
+                    totem::nt2::vfat::trailingEdgeTime(*record.frame, frame_id),
+                    totem::nt2::vfat::statusMarker(*record.frame),
+                    detId.rawId());
           foundT2++;
         } else {
           if (verbosity > 2)

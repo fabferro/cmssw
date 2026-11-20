@@ -25,7 +25,8 @@ namespace io_v1 {
                     const uint16_t timestampB,
                     const uint16_t cellInfo,
                     const std::vector<uint8_t>& samples,
-                    const TotemTimingEventInfo& totemTimingEventInfo);
+                    const TotemTimingEventInfo& totemTimingEventInfo,
+                    uint32_t detId = 0);
     TotemTimingDigi();
 
     /// Digis are equal if they have all the same values, NOT checking the samples!
@@ -66,6 +67,7 @@ namespace io_v1 {
     }
 
     inline TotemTimingEventInfo eventInfo() const { return totemTimingEventInfo_; }
+    inline uint32_t detId() const { return detId_; }
 
     /// Set digi values
     /// Hardware Id formatted as: bits 0-3 Channel Id, bit 4 Sampic Id, bits 5-7 Digitizer Board Id
@@ -106,6 +108,7 @@ namespace io_v1 {
     inline void setEventInfo(const TotemTimingEventInfo& totemTimingEventInfo) {
       totemTimingEventInfo_ = totemTimingEventInfo;
     }
+    inline void setDetId(uint32_t detId) { detId_ = detId; }
 
   private:
     uint8_t hwId_;
@@ -117,6 +120,7 @@ namespace io_v1 {
     std::vector<uint8_t> samples_;
 
     TotemTimingEventInfo totemTimingEventInfo_;
+    uint32_t detId_;
   };
 }  // namespace io_v1
 #include <iostream>

@@ -10,6 +10,10 @@
 #ifndef DataFormats_CTPPSReco_TotemRPRecHit
 #define DataFormats_CTPPSReco_TotemRPRecHit
 
+#include <cstdint>
+
+#include "DataFormats/CTPPSDetId/interface/TotemRPDetId.h"
+
 /**
  *\brief Reconstructed hit in TOTEM RP.
  *
@@ -20,6 +24,9 @@ namespace io_v1 {
   public:
     TotemRPRecHit(double position = 0, double sigma = 0) : position_(position), sigma_(sigma) {}
 
+    inline void setDetId(TotemRPDetId detid) { detid_ = detid.rawId(); }
+    inline TotemRPDetId detId() const { return TotemRPDetId(detid_); }
+
     inline double position() const { return position_; }
     inline void setPosition(double position) { position_ = position; }
 
@@ -27,6 +34,8 @@ namespace io_v1 {
     inline void setSigma(double sigma) { sigma_ = sigma; }
 
   private:
+    uint32_t detid_ = 0;
+
     /// position of the hit in mm, wrt detector center (see RPTopology::GetHitPositionInReadoutDirection)
     double position_;
 

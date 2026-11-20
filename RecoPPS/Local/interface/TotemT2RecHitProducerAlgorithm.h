@@ -18,12 +18,12 @@
 #include "Geometry/ForwardGeometry/interface/TotemGeometry.h"
 
 class TotemT2RecHitProducerAlgorithm : public TimingRecHitProducerAlgorithm<TotemGeometry,
-                                                                            edmNew::DetSetVector<TotemT2Digi>,
+                                                                            std::vector<TotemT2Digi>,
                                                                             edmNew::DetSetVector<TotemT2RecHit> > {
 public:
   using TimingRecHitProducerAlgorithm::TimingRecHitProducerAlgorithm;
   void build(const TotemGeometry&,
-             const edmNew::DetSetVector<TotemT2Digi>&,
+             const std::vector<TotemT2Digi>&,
              edmNew::DetSetVector<TotemT2RecHit>&) override;
 };
 

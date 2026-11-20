@@ -2,8 +2,13 @@
 
 namespace io_v1 {
   TotemT2Digi::TotemT2Digi(
-      unsigned short id, unsigned char marker, unsigned short le, unsigned short te, unsigned char status)
-      : id_(id), marker_(marker), lead_edge_(le), trail_edge_(te), status_(status) {}
+      unsigned short id,
+      unsigned char marker,
+      unsigned short le,
+      unsigned short te,
+      unsigned char status,
+      uint32_t detId)
+      : id_(id), marker_(marker), lead_edge_(le), trail_edge_(te), status_(status), detId_(detId) {}
 
   bool operator<(const TotemT2Digi& lhs, const TotemT2Digi& rhs) {
     if (lhs.leadingEdge() < rhs.leadingEdge())

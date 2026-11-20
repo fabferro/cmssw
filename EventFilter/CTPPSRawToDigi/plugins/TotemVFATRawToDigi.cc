@@ -102,16 +102,16 @@ TotemVFATRawToDigi::TotemVFATRawToDigi(const edm::ParameterSet &conf)
 
   // declare products
   if (subSystem == ssTrackingStrip)
-    produces<DetSetVector<TotemRPDigi>>(subSystemName);
+    produces<vector<TotemRPDigi>>(subSystemName);
 
   else if (subSystem == ssTimingDiamond)
-    produces<DetSetVector<CTPPSDiamondDigi>>(subSystemName);
+    produces<vector<CTPPSDiamondDigi>>(subSystemName);
 
   else if (subSystem == ssTotemTiming)
-    produces<DetSetVector<TotemTimingDigi>>(subSystemName);
+    produces<vector<TotemTimingDigi>>(subSystemName);
 
   else if (subSystem == ssTotemT2)
-    produces<edmNew::DetSetVector<TotemT2Digi>>(subSystemName);
+    produces<vector<TotemT2Digi>>(subSystemName);
 
   // set default IDs
   if (fedIds.empty()) {
@@ -157,16 +157,16 @@ TotemVFATRawToDigi::~TotemVFATRawToDigi() {}
 
 void TotemVFATRawToDigi::produce(edm::Event &event, const edm::EventSetup &es) {
   if (subSystem == ssTrackingStrip)
-    run<DetSetVector<TotemRPDigi>>(event, es);
+    run<vector<TotemRPDigi>>(event, es);
 
   else if (subSystem == ssTimingDiamond)
-    run<DetSetVector<CTPPSDiamondDigi>>(event, es);
+    run<vector<CTPPSDiamondDigi>>(event, es);
 
   else if (subSystem == ssTotemTiming)
-    run<DetSetVector<TotemTimingDigi>>(event, es);
+    run<vector<TotemTimingDigi>>(event, es);
 
   else if (subSystem == ssTotemT2)
-    run<edmNew::DetSetVector<TotemT2Digi>>(event, es);
+    run<vector<TotemT2Digi>>(event, es);
 }
 
 template <typename DigiType>
