@@ -310,11 +310,12 @@ void CTPPSPixelLocalTrackProducer::produce(edm::Event &iEvent, const edm::EventS
       edm::LogInfo("CTPPSPixelLocalTrackProducer") << "tmpTracksVector = " << tmpTracksVector.size();
     if (maxTrackPerPattern_ >= 0 && tmpTracksVector.size() > (uint32_t)maxTrackPerPattern_) {
       if (verbosity_ > 2)
-        edm::LogInfo("CTPPSPixelLocalTrackProducer") << " ---> To many tracks in the pattern, cleared";
+        edm::LogInfo("CTPPSPixelLocalTrackProducer") << " ---> Too many tracks in the pattern, cleared";
       continue;
     }
 
-    for (const auto &track : tmpTracksVector) {
+    for (auto track : tmpTracksVector) {
+      track.setDetId(romanPotId);
       ++numberOfTracks;
       tracksByPot[romanPotId].push_back(track);
     }
@@ -327,7 +328,7 @@ void CTPPSPixelLocalTrackProducer::produce(edm::Event &iEvent, const edm::EventS
   for (const auto &[romanPotId, tracks] : tracksByPot) {
     if (verbosity_ > 1)
       edm::LogInfo("CTPPSPixelLocalTrackProducer")
-          << "Track found in detId = " << romanPotId << " number = " << tracks.size();
+          << "Number of tracks found in detId = " << romanPotId << " is = " << tracks.size();
     if (maxTrackPerRomanPot_ >= 0 && tracks.size() > (uint32_t)maxTrackPerRomanPot_) {
       if (verbosity_ > 1)
         edm::LogInfo("CTPPSPixelLocalTrackProducer") << " ---> Too many tracks in the pot, cleared";
