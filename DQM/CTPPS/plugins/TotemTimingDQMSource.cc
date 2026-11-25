@@ -93,9 +93,9 @@ private:
   static const float COS_8_DEG;
   static const float SIN_8_DEG;
 
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPLocalTrack>> tokenLocalTrack_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingDigi>> tokenDigi_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingRecHit>> tokenRecHit_;
+  edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> tokenLocalTrack_;
+  edm::EDGetTokenT<std::vector<TotemTimingDigi>> tokenDigi_;
+  edm::EDGetTokenT<std::vector<TotemTimingRecHit>> tokenRecHit_;
   edm::EDGetTokenT<std::vector<TotemFEDInfo>> tokenFEDInfo_;
 
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> geometryToken_;
@@ -405,11 +405,11 @@ TotemTimingDQMSource::ChannelPlots::ChannelPlots(DQMStore::IBooker &ibooker, uns
 
 TotemTimingDQMSource::TotemTimingDQMSource(const edm::ParameterSet &ps)
     : tokenLocalTrack_(
-          consumes<edm::DetSetVector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"))),
-      tokenDigi_(consumes<edm::DetSetVector<TotemTimingDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"))),
+          consumes<std::vector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"))),
+        tokenDigi_(consumes<std::vector<TotemTimingDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"))),
       tokenRecHit_(
-          consumes<edm::DetSetVector<TotemTimingRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHits"))),
-      // tokenTrack_(consumes<edm::DetSetVector<TotemTimingLocalTrack>>(
+          consumes<std::vector<TotemTimingRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHits"))),
+        // tokenTrack_(consumes<std::vector<TotemTimingLocalTrack>>(
       //     ps.getParameter<edm::InputTag>("tagLocalTracks"))),
       tokenFEDInfo_(consumes<std::vector<TotemFEDInfo>>(ps.getUntrackedParameter<edm::InputTag>("tagFEDInfo"))),
       geometryToken_(esConsumes()),
@@ -491,16 +491,16 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
   auto const &geometry = eventSetup.getData(geometryToken_);
 
   // get event data
-  edm::Handle<edm::DetSetVector<TotemRPLocalTrack>> stripTracks;
+  edm::Handle<std::vector<TotemRPLocalTrack>> stripTracks;
   event.getByToken(tokenLocalTrack_, stripTracks);
 
-  edm::Handle<edm::DetSetVector<TotemTimingDigi>> timingDigis;
+  edm::Handle<std::vector<TotemTimingDigi>> timingDigis;
   event.getByToken(tokenDigi_, timingDigis);
 
   edm::Handle<std::vector<TotemFEDInfo>> fedInfo;
   event.getByToken(tokenFEDInfo_, fedInfo);
 
-  edm::Handle<edm::DetSetVector<TotemTimingRecHit>> timingRecHits;
+  edm::Handle<std::vector<TotemTimingRecHit>> timingRecHits;
   event.getByToken(tokenRecHit_, timingRecHits);
 
   // check validity
@@ -525,15 +525,14 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
   std::unordered_map<unsigned int, unsigned int> channelsPerPlaneWithTime;
 
   auto lumiCache = luminosityBlockCache(event.getLuminosityBlock().index());
-  for (const auto &digis : *timingDigis) {
-    const TotemTimingDetId detId(digis.detId());
-    TotemTimingDetId detId_pot(digis.detId());
+  for (const auto &digi : *timingDigis) {
+    const TotemTimingDetId detId(digi.detId());
+    TotemTimingDetId detId_pot(digi.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    TotemTimingDetId detId_plane(digis.detId());
+    TotemTimingDetId detId_plane(digi.detId());
     detId_plane.setChannel(0);
 
-    for (const auto &digi : digis) {
       // Pot Plots
       if (potPlots_.find(detId_pot) != potPlots_.end()) {
         potPlots_[detId_pot].activityPerBX->Fill(event.bunchCrossing());
@@ -586,19 +585,17 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
                                              (event.time().value() - timeOfPreviousEvent_));
         ++(lumiCache->hitsCounterMap[detId]);
       }
-    }
   }
   // End digis
 
-  for (const auto &rechits : *timingRecHits) {
-    const TotemTimingDetId detId(rechits.detId());
-    TotemTimingDetId detId_pot(rechits.detId());
+  for (const auto &rechit : *timingRecHits) {
+    const TotemTimingDetId detId(rechit.detId());
+    TotemTimingDetId detId_pot(rechit.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    TotemTimingDetId detId_plane(rechits.detId());
+    TotemTimingDetId detId_plane(rechit.detId());
     detId_plane.setChannel(0);
 
-    for (const auto &rechit : rechits) {
       if (potPlots_.find(detId_pot) != potPlots_.end()) {
         potPlots_[detId_pot].amplitude->Fill(rechit.amplitude());
 
@@ -660,27 +657,25 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
           }
         }
       }
-    }
   }
   // End RecHits
 
   // Tomography of timing using strips
-  for (const auto &rechits : *timingRecHits) {
-    const TotemTimingDetId detId(rechits.detId());
-    TotemTimingDetId detId_pot(rechits.detId());
+  for (const auto &rechit : *timingRecHits) {
+    const TotemTimingDetId detId(rechit.detId());
+    TotemTimingDetId detId_pot(rechit.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    TotemTimingDetId detId_plane(rechits.detId());
+    TotemTimingDetId detId_plane(rechit.detId());
     detId_plane.setChannel(0);
 
     float y_shift = (detId.rp() == TOTEM_TIMING_TOP_RP_ID) ? 20 : 5;
 
-    for (const auto &rechit : rechits) {
       if (rechit.time() != TotemTimingRecHit::NO_T_AVAILABLE && potPlots_.find(detId_pot) != potPlots_.end() &&
           planePlots_.find(detId_plane) != planePlots_.end() && channelPlots_.find(detId) != channelPlots_.end()) {
         if (stripTracks.isValid()) {
-          for (const auto &ds : *stripTracks) {
-            const CTPPSDetId stripId(ds.detId());
+          for (const auto &striplt : *stripTracks) {
+            const CTPPSDetId stripId(striplt.detId());
             // mean position of U and V planes
             TotemRPDetId plId_V(stripId);
             plId_V.setPlane(0);
@@ -696,7 +691,6 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
               continue;
             }
 
-            for (const auto &striplt : ds) {
               if (striplt.isValid() && stripId.arm() == detId.arm()) {
                 if (striplt.tx() > maximumStripAngleForTomography_ || striplt.ty() > maximumStripAngleForTomography_)
                   continue;
@@ -713,12 +707,10 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
                     channelPlots_[detId].stripTomography220->Fill(x, y + y_shift);
                   }
                 }
-              }
-            }
           }
         }
       }
-    }
+  }
   }
 
   for (auto &plt : potPlots_) {

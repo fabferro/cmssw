@@ -17,8 +17,6 @@
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
-
 #include "CondFormats/PPSObjects/interface/CTPPSPixelIndices.h"
 #include "DataFormats/CTPPSDetId/interface/CTPPSDetId.h"
 #include "DataFormats/CTPPSDigi/interface/CTPPSPixelDigi.h"
@@ -30,7 +28,9 @@
 #include "CondFormats/DataRecord/interface/CTPPSPixelDAQMappingRcd.h"
 #include "CondFormats/PPSObjects/interface/CTPPSPixelDAQMapping.h"
 
+#include <map>
 #include <string>
+#include <vector>
 
 //-----------------------------------------------------------------------------
 
@@ -47,10 +47,10 @@ protected:
 private:
   unsigned int verbosity;
   long int nEvents = 0;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelDigi>> tokenDigi;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelDataError>> tokenError;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelCluster>> tokenCluster;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelLocalTrack>> tokenTrack;
+  edm::EDGetTokenT<std::vector<CTPPSPixelDigi>> tokenDigi;
+  edm::EDGetTokenT<std::vector<CTPPSPixelDataError>> tokenError;
+  edm::EDGetTokenT<std::vector<CTPPSPixelCluster>> tokenCluster;
+  edm::EDGetTokenT<std::vector<CTPPSPixelLocalTrack>> tokenTrack;
   edm::EDGetTokenT<edm::TriggerResults> tokenTrigResults;
   edm::ESGetToken<CTPPSPixelDAQMapping, CTPPSPixelDAQMappingRcd> tokenPixelDAQMapping;
   std::string randomHLTPath;
@@ -218,10 +218,10 @@ CTPPSPixelDQMSource::CTPPSPixelDQMSource(const edm::ParameterSet &ps)
     : verbosity(ps.getUntrackedParameter<unsigned int>("verbosity", 0)),
       randomHLTPath(ps.getUntrackedParameter<std::string>("randomHLTPath", "")),
       rpStatusWord(ps.getUntrackedParameter<unsigned int>("RPStatusWord", 0x8008)) {
-  tokenDigi = consumes<DetSetVector<CTPPSPixelDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixDigi"));
-  tokenError = consumes<DetSetVector<CTPPSPixelDataError>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixError"));
-  tokenCluster = consumes<DetSetVector<CTPPSPixelCluster>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixCluster"));
-  tokenTrack = consumes<DetSetVector<CTPPSPixelLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixLTrack"));
+  tokenDigi = consumes<std::vector<CTPPSPixelDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixDigi"));
+  tokenError = consumes<std::vector<CTPPSPixelDataError>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixError"));
+  tokenCluster = consumes<std::vector<CTPPSPixelCluster>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixCluster"));
+  tokenTrack = consumes<std::vector<CTPPSPixelLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagRPixLTrack"));
   tokenTrigResults = consumes<edm::TriggerResults>(ps.getUntrackedParameter<edm::InputTag>("tagTrigResults"));
   tokenPixelDAQMapping = esConsumes<CTPPSPixelDAQMapping, CTPPSPixelDAQMappingRcd>();
   mappingLabel = ps.getUntrackedParameter<std::string>("mappingLabel");
@@ -694,16 +694,16 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
       HitsMultROC[ind][roc] = 0;
     }
   }
-  Handle<DetSetVector<CTPPSPixelDigi>> pixDigi;
+  Handle<std::vector<CTPPSPixelDigi>> pixDigi;
   event.getByToken(tokenDigi, pixDigi);
 
-  Handle<DetSetVector<CTPPSPixelDataError>> pixError;
+  Handle<std::vector<CTPPSPixelDataError>> pixError;
   event.getByToken(tokenError, pixError);
 
-  Handle<DetSetVector<CTPPSPixelCluster>> pixClus;
+  Handle<std::vector<CTPPSPixelCluster>> pixClus;
   event.getByToken(tokenCluster, pixClus);
 
-  Handle<DetSetVector<CTPPSPixelLocalTrack>> pixTrack;
+  Handle<std::vector<CTPPSPixelLocalTrack>> pixTrack;
   event.getByToken(tokenTrack, pixTrack);
 
   Handle<edm::TriggerResults> hltResults;
@@ -717,87 +717,76 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
   }
 
   if (pixTrack.isValid()) {
-    for (const auto &ds_tr : *pixTrack) {
-      int idet = getDet(ds_tr.id);
+    for (const auto &track : *pixTrack) {
+      const uint32_t detId = track.detId().rawId();
+      int idet = getDet(detId);
       if (idet != DetId::VeryForward) {
         if (verbosity > 1)
-          LogPrint("CTPPSPixelDQMSource") << "not CTPPS: ds_tr.id" << ds_tr.id;
+          LogPrint("CTPPSPixelDQMSource") << "not CTPPS: track.detId" << detId;
         continue;
       }
-      CTPPSDetId theId(ds_tr.id);
+      CTPPSDetId theId(detId);
       int arm = theId.arm() & 0x1;
       int station = theId.station() & 0x3;
       int rpot = theId.rp() & 0x7;
       int rpInd = getRPindex(arm, station, rpot);
 
-      for (DetSet<CTPPSPixelLocalTrack>::const_iterator dit = ds_tr.begin(); dit != ds_tr.end(); ++dit) {
-        ++pixRPTracks[rpInd];
-        int nh_tr = (dit->ndf() + TrackFitDimension) / 2;
-        if (onlinePlots) {
-          for (int i = 0; i <= NplaneMAX; i++) {
-            if (i == nh_tr)
-              htrackHits[rpInd]->Fill(nh_tr, 1.);
+      ++pixRPTracks[rpInd];
+      int nh_tr = (track.ndf() + TrackFitDimension) / 2;
+      if (onlinePlots) {
+        for (int i = 0; i <= NplaneMAX; i++) {
+          if (i == nh_tr)
+            htrackHits[rpInd]->Fill(nh_tr, 1.);
+          else
+            htrackHits[rpInd]->Fill(i, 0.);
+        }
+      }
+      float x0 = track.x0();
+      float y0 = track.y0();
+      h2trackXY0[rpInd]->Fill(x0, y0);
+
+      if (x0_MAX < x0)
+        x0_MAX = x0;
+      if (y0_MAX < y0)
+        y0_MAX = y0;
+      if (x0_MIN > x0)
+        x0_MIN = x0;
+      if (y0_MIN > y0)
+        y0_MIN = y0;
+
+      if (offlinePlots) {
+        const auto &fittedHits = track.hits();
+
+        std::map<int, int> numberOfPointPerPlaneEff;
+        for (const auto &fittedHit : fittedHits) {
+          int plane = getPixPlane(fittedHit.detId().rawId());
+          if (fittedHit.isRealHit())
+            for (int p = 0; p < NplaneMAX; p++) {
+              if (p != plane)
+                numberOfPointPerPlaneEff[p]++;
+            }
+        }
+
+        if (verbosity > 1)
+          for (auto planeAndHitsOnOthers : numberOfPointPerPlaneEff) {
+            LogPrint("CTPPSPixelDQMSource")
+                << "For plane " << planeAndHitsOnOthers.first << ", " << planeAndHitsOnOthers.second
+                << " hits on other planes were found" << endl;
+          }
+
+        for (const auto &fittedHit : fittedHits) {
+          int plane = getPixPlane(fittedHit.detId().rawId());
+          if (isPlanePlotsTurnedOff[arm][station][rpot][plane])
+            continue;
+          float frhX0 = fittedHit.globalCoordinates().x() + fittedHit.xResidual();
+          float frhY0 = fittedHit.globalCoordinates().y() + fittedHit.yResidual();
+          if (numberOfPointPerPlaneEff[plane] >= 3) {
+            if (fittedHit.isRealHit())
+              h2Efficiency[rpInd][plane]->Fill(frhX0, frhY0, 1);
             else
-              htrackHits[rpInd]->Fill(i, 0.);
-          }
-        }
-        float x0 = dit->x0();
-        float y0 = dit->y0();
-        h2trackXY0[rpInd]->Fill(x0, y0);
-
-        if (x0_MAX < x0)
-          x0_MAX = x0;
-        if (y0_MAX < y0)
-          y0_MAX = y0;
-        if (x0_MIN > x0)
-          x0_MIN = x0;
-        if (y0_MIN > y0)
-          y0_MIN = y0;
-
-        if (offlinePlots) {
-          edm::DetSetVector<CTPPSPixelFittedRecHit> fittedHits = dit->hits();
-
-          std::map<int, int> numberOfPointPerPlaneEff;
-          for (const auto &ds_frh : fittedHits) {
-            int plane = getPixPlane(ds_frh.id);
-            for (DetSet<CTPPSPixelFittedRecHit>::const_iterator frh_it = ds_frh.begin(); frh_it != ds_frh.end();
-                 ++frh_it) {  // there should always be only one hit in each
-                              // vector
-              if (frh_it != ds_frh.begin())
-                if (verbosity > 1)
-                  LogPrint("CTPPSPixelDQMSource") << "More than one FittedRecHit found in plane " << plane;
-              if (frh_it->isRealHit())
-                for (int p = 0; p < NplaneMAX; p++) {
-                  if (p != plane)
-                    numberOfPointPerPlaneEff[p]++;
-                }
+              h2Efficiency[rpInd][plane]->Fill(frhX0, frhY0, 0);
             }
           }
-
-          if (verbosity > 1)
-            for (auto planeAndHitsOnOthers : numberOfPointPerPlaneEff) {
-              LogPrint("CTPPSPixelDQMSource")
-                  << "For plane " << planeAndHitsOnOthers.first << ", " << planeAndHitsOnOthers.second
-                  << " hits on other planes were found" << endl;
-            }
-
-          for (const auto &ds_frh : fittedHits) {
-            int plane = getPixPlane(ds_frh.id);
-            if (isPlanePlotsTurnedOff[arm][station][rpot][plane])
-              continue;
-            for (DetSet<CTPPSPixelFittedRecHit>::const_iterator frh_it = ds_frh.begin(); frh_it != ds_frh.end();
-                 ++frh_it) {
-              float frhX0 = frh_it->globalCoordinates().x() + frh_it->xResidual();
-              float frhY0 = frh_it->globalCoordinates().y() + frh_it->yResidual();
-              if (numberOfPointPerPlaneEff[plane] >= 3) {
-                if (frh_it->isRealHit())
-                  h2Efficiency[rpInd][plane]->Fill(frhX0, frhY0, 1);
-                else
-                  h2Efficiency[rpInd][plane]->Fill(frhX0, frhY0, 0);
-              }
-            }
-          }
-        }
       }
     }
   }  // end  if(pixTrack.isValid())
@@ -810,18 +799,22 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
     LogPrint("CTPPSPixelDQMSource") << "No valid data in Event " << nEvents;
 
   if (pixDigi.isValid()) {
-    for (const auto &ds_digi : *pixDigi) {
-      int idet = getDet(ds_digi.id);
+    std::map<uint32_t, std::vector<const CTPPSPixelDigi *>> digisByDetId;
+    for (const auto &digi : *pixDigi)
+      digisByDetId[digi.detId()].push_back(&digi);
+
+    for (const auto &detAndDigis : digisByDetId) {
+      const uint32_t detId = detAndDigis.first;
+      const auto &digis = detAndDigis.second;
+      int idet = getDet(detId);
       if (idet != DetId::VeryForward) {
         if (verbosity > 1)
-          LogPrint("CTPPSPixelDQMSource") << "not CTPPS: ds_digi.id" << ds_digi.id;
+          LogPrint("CTPPSPixelDQMSource") << "not CTPPS: digi.detId" << detId;
         continue;
       }
-      //   int subdet = getSubdet(ds_digi.id);
+      int plane = getPixPlane(detId);
 
-      int plane = getPixPlane(ds_digi.id);
-
-      CTPPSDetId theId(ds_digi.id);
+      CTPPSDetId theId(detId);
       int arm = theId.arm() & 0x1;
       int station = theId.station() & 0x3;
       int rpot = theId.rp() & 0x7;
@@ -831,13 +824,13 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
 
       if (StationStatus[station] && RPstatus[station][rpot]) {
         if (onlinePlots) {
-          h2HitsMultipl[arm][station]->Fill(prIndex(rpot, plane), ds_digi.data.size());
+          h2HitsMultipl[arm][station]->Fill(prIndex(rpot, plane), digis.size());
           h2AllPlanesActive->Fill(plane, getRPglobalBin(arm, station));
         }
         int index = getRPindex(arm, station, rpot);
-        HitsMultPlane[index][plane] += ds_digi.data.size();
+        HitsMultPlane[index][plane] += digis.size();
         if (RPindexValid[index]) {
-          int nh = ds_digi.data.size();
+          int nh = digis.size();
           if (nh > hitMultMAX)
             nh = hitMultMAX;
           if (!isPlanePlotsTurnedOff[arm][station][rpot][plane])
@@ -846,7 +839,7 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
         }
         int rocHistIndex = getPlaneIndex(arm, station, rpot, plane);
 
-        for (DetSet<CTPPSPixelDigi>::const_iterator dit = ds_digi.begin(); dit != ds_digi.end(); ++dit) {
+        for (const auto *dit : digis) {
           int row = dit->row();
           int col = dit->column();
           int adc = dit->adc();
@@ -867,17 +860,23 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
           }  // end if(RPindexValid[index]) {
         }
       }  // end  if(StationStatus[station]) {
-    }  // end for(const auto &ds_digi : *pixDigi)
+    }  // end for(const auto &detAndDigis : digisByDetId)
   }  // if(pixDigi.isValid()) {
 
   if (pixError.isValid()) {
     std::map<CTPPSPixelFramePosition, CTPPSPixelROCInfo> rocMapping = mapping->ROCMapping;
-    for (const auto &ds_error : *pixError) {
-      int idet = getDet(ds_error.id);
+    std::map<uint32_t, std::vector<const CTPPSPixelDataError *>> errorsByDetId;
+    for (const auto &error : *pixError)
+      errorsByDetId[error.detId()].push_back(&error);
+
+    for (const auto &detAndErrors : errorsByDetId) {
+      const uint32_t detId = detAndErrors.first;
+      const auto &errors = detAndErrors.second;
+      int idet = getDet(detId);
       if (idet != DetId::VeryForward) {
         if (idet == 15) {  //dummy det id: store in a plot with fed info
 
-          for (DetSet<CTPPSPixelDataError>::const_iterator dit = ds_error.begin(); dit != ds_error.end(); ++dit) {
+          for (const auto *dit : errors) {
             // recover fed channel number
             int chanNmbr = -1;
             if (dit->errorType() == 32 || dit->errorType() == 33 || dit->errorType() == 34) {
@@ -1094,22 +1093,22 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
           continue;
         }  // if idet == 15
         if (verbosity > 1)
-          LogPrint("CTPPSPixelDQMSource") << "not CTPPS: ds_error.id" << ds_error.id;
+          LogPrint("CTPPSPixelDQMSource") << "not CTPPS: error.detId" << detId;
         continue;
       }  // end of dummy detId block
 
-      int plane = getPixPlane(ds_error.id);
-      CTPPSDetId theId(ds_error.id);
+      int plane = getPixPlane(detId);
+      CTPPSDetId theId(detId);
       int arm = theId.arm() & 0x1;
       int station = theId.station() & 0x3;
       int rpot = theId.rp() & 0x7;
       int rpInd = getRPindex(arm, station, rpot);
       RPactivity[rpInd] = 1;
-      CTPPSPixelDetId IDD(ds_error.id);
+      CTPPSPixelDetId IDD(detId);
 
       if (StationStatus[station] && RPstatus[station][rpot]) {
         int index = getRPindex(arm, station, rpot);
-        for (DetSet<CTPPSPixelDataError>::const_iterator dit = ds_error.begin(); dit != ds_error.end(); ++dit) {
+        for (const auto *dit : errors) {
           if (RPindexValid[index]) {
             if (!isPlanePlotsTurnedOff[arm][station][rpot][plane]) {
               h2ErrorCodeRP[index]->Fill(dit->errorType(), plane);
@@ -1253,19 +1252,20 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
           }  // end if(RPindexValid[index]) {
         }
       }  // end  if(StationStatus[station]) {
-    }  // end for(const auto &ds_error : *pixDigi)
+    }  // end for(const auto &detAndErrors : errorsByDetId)
   }  // if(pixError.isValid())
 
   if (pixClus.isValid() && onlinePlots)
-    for (const auto &ds : *pixClus) {
-      int idet = getDet(ds.id);
+    for (const auto &cluster : *pixClus) {
+      const uint32_t detId = cluster.detId().rawId();
+      int idet = getDet(detId);
       if (idet != DetId::VeryForward && verbosity > 1) {
-        LogPrint("CTPPSPixelDQMSource") << "not CTPPS: cluster.id" << ds.id;
+        LogPrint("CTPPSPixelDQMSource") << "not CTPPS: cluster.detId" << detId;
         continue;
       }
 
-      CTPPSDetId theId(ds.id);
-      int plane = getPixPlane(ds.id);
+      CTPPSDetId theId(detId);
+      int plane = getPixPlane(detId);
       int arm = theId.arm() & 0x1;
       int station = theId.station() & 0x3;
       int rpot = theId.rp() & 0x7;
@@ -1273,14 +1273,12 @@ void CTPPSPixelDQMSource::analyze(edm::Event const &event, edm::EventSetup const
       if ((StationStatus[station] == 0) || (RPstatus[station][rpot] == 0))
         continue;
 
-      for (const auto &p : ds) {
-        int clusize = p.size();
+      int clusize = cluster.size();
 
-        if (clusize > ClusterSizeMax)
-          clusize = ClusterSizeMax;
+      if (clusize > ClusterSizeMax)
+        clusize = ClusterSizeMax;
 
-        h2CluSize[arm][station]->Fill(prIndex(rpot, plane), clusize);
-      }
+      h2CluSize[arm][station]->Fill(prIndex(rpot, plane), clusize);
     }  // end if(pixClus.isValid()) for(const auto &ds : *pixClus)
 
   bool allRPactivity = false;

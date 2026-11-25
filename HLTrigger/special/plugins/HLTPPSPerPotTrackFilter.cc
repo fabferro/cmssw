@@ -38,9 +38,9 @@ public:
   bool filter(edm::StreamID, edm::Event&, const edm::EventSetup&) const override;
 
 private:
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelLocalTrackToken_;
+  edm::EDGetTokenT<std::vector<CTPPSPixelLocalTrack>> pixelLocalTrackToken_;
   edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> stripLocalTrackToken_;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSDiamondLocalTrack>> diamondLocalTrackToken_;
+  edm::EDGetTokenT<std::vector<CTPPSDiamondLocalTrack>> diamondLocalTrackToken_;
 
   struct PerPotFilter {
     int minTracks;
@@ -103,7 +103,7 @@ HLTPPSPerPotTrackFilter::HLTPPSPerPotTrackFilter(const edm::ParameterSet& iConfi
   // First define pixels (2017+) selection
   const auto& pixelVPset = iConfig.getParameter<std::vector<edm::ParameterSet>>("pixelFilter");
   if (!pixelVPset.empty()) {
-    pixelLocalTrackToken_ = consumes<edm::DetSetVector<CTPPSPixelLocalTrack>>(
+    pixelLocalTrackToken_ = consumes<std::vector<CTPPSPixelLocalTrack>>(
         iConfig.getParameter<edm::InputTag>("pixelLocalTrackInputTag"));
     for (const auto& pset : pixelVPset)
       pixel_filter_[pset.getParameter<unsigned int>("detid")] =
@@ -121,7 +121,7 @@ HLTPPSPerPotTrackFilter::HLTPPSPerPotTrackFilter(const edm::ParameterSet& iConfi
   // Finally define diamond (2016+) selection
   const auto& diamVPset = iConfig.getParameter<std::vector<edm::ParameterSet>>("diamondFilter");
   if (!diamVPset.empty()) {
-    diamondLocalTrackToken_ = consumes<edm::DetSetVector<CTPPSDiamondLocalTrack>>(
+    diamondLocalTrackToken_ = consumes<std::vector<CTPPSDiamondLocalTrack>>(
         iConfig.getParameter<edm::InputTag>("diamondLocalTrackInputTag"));
     for (const auto& pset : diamVPset)
       diam_filter_[pset.getParameter<unsigned int>("detid")] =
@@ -132,15 +132,21 @@ HLTPPSPerPotTrackFilter::HLTPPSPerPotTrackFilter(const edm::ParameterSet& iConfi
 bool HLTPPSPerPotTrackFilter::filter(edm::StreamID, edm::Event& iEvent, const edm::EventSetup& iSetup) const {
   // First filter on pixels
   if (!pixel_filter_.empty()) {
-    edm::Handle<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelTracks;
+    edm::Handle<std::vector<CTPPSPixelLocalTrack>> pixelTracks;
     iEvent.getByToken(pixelLocalTrackToken_, pixelTracks);
 
-    for (const auto& rpv : *pixelTracks) {
-      if (pixel_filter_.count(rpv.id) == 0)
+    std::unordered_map<uint32_t, int> validTracksPerPot;
+    for (const auto& track : *pixelTracks) {
+      const uint32_t detId = track.detId().rawId();
+      if (pixel_filter_.count(detId) == 0)
         continue;
-      const auto& fltr = pixel_filter_.at(rpv.id);
+      int& ntrks = validTracksPerPot[detId];
+      if (valid_trks_(track))
+        ++ntrks;
+    }
 
-      const auto ntrks = std::count_if(rpv.begin(), rpv.end(), valid_trks_);
+    for (const auto& [detId, ntrks] : validTracksPerPot) {
+      const auto& fltr = pixel_filter_.at(detId);
       if (fltr.minTracks > 0 && ntrks < fltr.minTracks)
         return false;
       if (fltr.maxTracks > 0 && ntrks > fltr.maxTracks)
@@ -174,15 +180,21 @@ bool HLTPPSPerPotTrackFilter::filter(edm::StreamID, edm::Event& iEvent, const ed
 
   // Finally filter on diamond
   if (!diam_filter_.empty()) {
-    edm::Handle<edm::DetSetVector<CTPPSDiamondLocalTrack>> diamondTracks;
+    edm::Handle<std::vector<CTPPSDiamondLocalTrack>> diamondTracks;
     iEvent.getByToken(diamondLocalTrackToken_, diamondTracks);
 
-    for (const auto& rpv : *diamondTracks) {
-      if (diam_filter_.count(rpv.id) == 0)
+    std::unordered_map<uint32_t, int> validTracksPerPot;
+    for (const auto& track : *diamondTracks) {
+      const uint32_t detId = track.detId().rawId();
+      if (diam_filter_.count(detId) == 0)
         continue;
-      const auto& fltr = diam_filter_.at(rpv.id);
+      int& ntrks = validTracksPerPot[detId];
+      if (valid_trks_(track))
+        ++ntrks;
+    }
 
-      const auto ntrks = std::count_if(rpv.begin(), rpv.end(), valid_trks_);
+    for (const auto& [detId, ntrks] : validTracksPerPot) {
+      const auto& fltr = diam_filter_.at(detId);
       if (fltr.minTracks > 0 && ntrks < fltr.minTracks)
         return false;
       if (fltr.maxTracks > 0 && ntrks > fltr.maxTracks)

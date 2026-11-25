@@ -74,10 +74,10 @@ private:
   static const double INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
   static const double SAMPIC_ADC_V;
 
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPLocalTrack>> tokenLocalTrack_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingDigi>> tokenDigi_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingRecHit>> tokenRecHit_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingLocalTrack>> tokenTrack_;
+  edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> tokenLocalTrack_;
+  edm::EDGetTokenT<std::vector<TotemTimingDigi>> tokenDigi_;
+  edm::EDGetTokenT<std::vector<TotemTimingRecHit>> tokenRecHit_;
+  edm::EDGetTokenT<std::vector<TotemTimingLocalTrack>> tokenTrack_;
   edm::EDGetTokenT<std::vector<TotemFEDInfo>> tokenFEDInfo_;
 
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> ctppsGeometryRunToken_;
@@ -382,12 +382,12 @@ DiamondSampicDQMSource::ChannelPlots::ChannelPlots(DQMStore::IBooker &ibooker, u
 
 DiamondSampicDQMSource::DiamondSampicDQMSource(const edm::ParameterSet &ps)
     : tokenLocalTrack_(
-          consumes<edm::DetSetVector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"))),
-      tokenDigi_(consumes<edm::DetSetVector<TotemTimingDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"))),
+          consumes<std::vector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"))),
+        tokenDigi_(consumes<std::vector<TotemTimingDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"))),
       tokenRecHit_(
-          consumes<edm::DetSetVector<TotemTimingRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHits"))),
+          consumes<std::vector<TotemTimingRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHits"))),
       tokenTrack_(
-          consumes<edm::DetSetVector<TotemTimingLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagTracks"))),
+          consumes<std::vector<TotemTimingLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagTracks"))),
       tokenFEDInfo_(consumes<std::vector<TotemFEDInfo>>(ps.getUntrackedParameter<edm::InputTag>("tagFEDInfo"))),
       ctppsGeometryRunToken_(esConsumes<CTPPSGeometry, VeryForwardRealGeometryRecord, edm::Transition::BeginRun>()),
       samplesForNoise_(ps.getUntrackedParameter<unsigned int>("samplesForNoise", 5)),
@@ -467,16 +467,16 @@ std::shared_ptr<totemds::Cache> DiamondSampicDQMSource::globalBeginLuminosityBlo
 
 void DiamondSampicDQMSource::analyze(const edm::Event &event, const edm::EventSetup &eventSetup) {
   // get event data
-  edm::Handle<edm::DetSetVector<TotemTimingDigi>> timingDigis;
+  edm::Handle<std::vector<TotemTimingDigi>> timingDigis;
   event.getByToken(tokenDigi_, timingDigis);
 
   edm::Handle<std::vector<TotemFEDInfo>> fedInfo;
   event.getByToken(tokenFEDInfo_, fedInfo);
 
-  edm::Handle<edm::DetSetVector<TotemTimingRecHit>> timingRecHits;
+  edm::Handle<std::vector<TotemTimingRecHit>> timingRecHits;
   event.getByToken(tokenRecHit_, timingRecHits);
 
-  edm::Handle<edm::DetSetVector<TotemTimingLocalTrack>> timingLocalTracks;
+  edm::Handle<std::vector<TotemTimingLocalTrack>> timingLocalTracks;
   event.getByToken(tokenTrack_, timingLocalTracks);
 
   // check validity
@@ -496,6 +496,10 @@ void DiamondSampicDQMSource::analyze(const edm::Event &event, const edm::EventSe
     return;
   }
 
+  std::unordered_map<uint32_t, size_t> tracksPerStation;
+  for (const auto& track : *timingLocalTracks)
+    ++tracksPerStation[track.detId().rawId()];
+
   // Using TotemTimingDigi
   std::set<uint8_t> boardSet;
   std::unordered_map<unsigned int, unsigned int> channelsPerPlane;
@@ -503,15 +507,14 @@ void DiamondSampicDQMSource::analyze(const edm::Event &event, const edm::EventSe
 
   auto lumiCache = luminosityBlockCache(event.getLuminosityBlock().index());
 
-  for (const auto &digis : *timingDigis) {
-    const CTPPSDiamondDetId detId(digis.detId());
-    CTPPSDiamondDetId detId_pot(digis.detId());
+  for (const auto &digi : *timingDigis) {
+    const CTPPSDiamondDetId detId(digi.detId());
+    CTPPSDiamondDetId detId_pot(digi.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    CTPPSDiamondDetId detId_plane(digis.detId());
+    CTPPSDiamondDetId detId_plane(digi.detId());
     detId_plane.setChannel(0);
 
-    for (const auto &digi : digis) {
       // Pot Plots
       if (potPlots_.find(detId_pot) != potPlots_.end()) {
         potPlots_[detId_pot].digiDistribution->Fill(detId.plane(), detId.channel());
@@ -571,19 +574,17 @@ void DiamondSampicDQMSource::analyze(const edm::Event &event, const edm::EventSe
           ++(lumiCache->hitsCounterMap[detId]);
         }
       }
-    }
   }
   // End digis
 
-  for (const auto &rechits : *timingRecHits) {
-    const CTPPSDiamondDetId detId(rechits.detId());
-    CTPPSDiamondDetId detId_pot(rechits.detId());
+  for (const auto &rechit : *timingRecHits) {
+    const CTPPSDiamondDetId detId(rechit.detId());
+    CTPPSDiamondDetId detId_pot(rechit.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    CTPPSDiamondDetId detId_plane(rechits.detId());
+    CTPPSDiamondDetId detId_plane(rechit.detId());
     detId_plane.setChannel(0);
 
-    for (const auto &rechit : rechits) {
       if (potPlots_.find(detId_pot) != potPlots_.end()) {
         float UFSDShift = 0.0;
         if (rechit.yWidth() < 3)
@@ -637,18 +638,16 @@ void DiamondSampicDQMSource::analyze(const edm::Event &event, const edm::EventSe
           }
         }
       }
-    }
   }
   // End RecHits
 
   // Using CTPPSDiamondLocalTrack
-  for (const auto &tracks : *timingLocalTracks) {
-    CTPPSDiamondDetId detId_pot(tracks.detId());
+  for (const auto &track : *timingLocalTracks) {
+    CTPPSDiamondDetId detId_pot(track.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    const CTPPSDiamondDetId detId_near(tracks.detId());
+    const CTPPSDiamondDetId detId_near(track.detId());
 
-    for (const auto &track : tracks) {
       if (!track.isValid())
         continue;
       if (potPlots_.find(detId_pot) == potPlots_.end())
@@ -663,36 +662,34 @@ void DiamondSampicDQMSource::analyze(const edm::Event &event, const edm::EventSe
       }
 
       //this plot was made with 2 stations per arm in mind
-      for (const auto &tracks_far : *timingLocalTracks) {
-        CTPPSDiamondDetId detId_far(tracks_far.detId());
+      for (const auto &track_far : *timingLocalTracks) {
+        CTPPSDiamondDetId detId_far(track_far.detId());
         detId_far.setPlane(0);
         detId_far.setChannel(0);
         if (detId_near.arm() != detId_far.arm() || detId_near.station() == detId_far.station())
           continue;
-        for (const auto &track_far : tracks_far) {
-          if (!track.isValid())
-            continue;
-          if (sectorPlots_.find(detId_far.armId()) == sectorPlots_.end())
-            continue;
-          TH2F *trackHistoTmp = sectorPlots_[detId_far.armId()].trackCorrelation->getTH2F();
-          TAxis *trackHistoTmpXAxis = trackHistoTmp->GetXaxis();
-          TAxis *trackHistoTmpYAxis = trackHistoTmp->GetYaxis();
-          const int startBin_far =
-              trackHistoTmpYAxis->FindBin(track_far.x0() - horizontalShiftOfDiamond_[detId_far] - track_far.x0Sigma());
-          const int numOfBins_far = 2 * track_far.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
-          for (int i = 0; i < numOfBins; ++i) {
-            for (int y = 0; y < numOfBins_far; ++y) {
-              trackHistoTmp->Fill(trackHistoTmpXAxis->GetBinCenter(startBin + i),
-                                  trackHistoTmpYAxis->GetBinCenter(startBin_far + y));
-              if (tracks.size() < 3 && tracks_far.size() < trackCorrelationThreshold_)
-                sectorPlots_[detId_far.armId()].trackCorrelationLowMultiplicity->Fill(
-                    trackHistoTmpXAxis->GetBinCenter(startBin + i), trackHistoTmpYAxis->GetBinCenter(startBin_far + y));
-            }
+        if (!track_far.isValid())
+          continue;
+        if (sectorPlots_.find(detId_far.armId()) == sectorPlots_.end())
+          continue;
+        TH2F *trackHistoTmp = sectorPlots_[detId_far.armId()].trackCorrelation->getTH2F();
+        TAxis *trackHistoTmpXAxis = trackHistoTmp->GetXaxis();
+        TAxis *trackHistoTmpYAxis = trackHistoTmp->GetYaxis();
+        const int startBin_far =
+            trackHistoTmpYAxis->FindBin(track_far.x0() - horizontalShiftOfDiamond_[detId_far] - track_far.x0Sigma());
+        const int numOfBins_far = 2 * track_far.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+        for (int i = 0; i < numOfBins; ++i) {
+          for (int y = 0; y < numOfBins_far; ++y) {
+            trackHistoTmp->Fill(trackHistoTmpXAxis->GetBinCenter(startBin + i),
+                                trackHistoTmpYAxis->GetBinCenter(startBin_far + y));
+            if (tracksPerStation.at(detId_near.rawId()) < 3 &&
+                tracksPerStation.at(detId_far.rawId()) < trackCorrelationThreshold_)
+              sectorPlots_[detId_far.armId()].trackCorrelationLowMultiplicity->Fill(
+                  trackHistoTmpXAxis->GetBinCenter(startBin + i), trackHistoTmpYAxis->GetBinCenter(startBin_far + y));
           }
         }
       }
     }
-  }
   if (plotOnline_) {
     for (auto &plt : potPlots_) {
       plt.second.planesWithDigis->Fill(plt.second.planesWithDigisSet.size());

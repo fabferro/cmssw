@@ -30,7 +30,6 @@
 #include "DataFormats/CTPPSDigi/interface/TotemFEDInfo.h"
 #include "DataFormats/CTPPSDigi/interface/TotemVFATStatus.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPLocalTrack.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/FEDRawData/interface/FEDNumbering.h"
 #include "DataFormats/Provenance/interface/EventRange.h"
 
@@ -66,8 +65,8 @@ private:
                                                        // (in mm)
   static const double INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
 
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingDigi>> totemTimingDigiToken_;
-  edm::EDGetTokenT<edm::DetSetVector<TotemTimingRecHit>> tokenRecHit_;
+  edm::EDGetTokenT<std::vector<TotemTimingDigi>> totemTimingDigiToken_;
+  edm::EDGetTokenT<std::vector<TotemTimingRecHit>> tokenRecHit_;
   edm::ESGetToken<PPSTimingCalibration, PPSTimingCalibrationRcd> timingCalibrationToken_;
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> geomEsToken_;
   unsigned int verbosity_;
@@ -174,9 +173,9 @@ DiamondSampicCalibrationDQMSource::ChannelPlots::ChannelPlots(DQMStore::IBooker 
 
 DiamondSampicCalibrationDQMSource::DiamondSampicCalibrationDQMSource(const edm::ParameterSet &ps)
     : totemTimingDigiToken_(
-          consumes<edm::DetSetVector<TotemTimingDigi>>(ps.getUntrackedParameter<edm::InputTag>("totemTimingDigiTag"))),
+            consumes<std::vector<TotemTimingDigi>>(ps.getUntrackedParameter<edm::InputTag>("totemTimingDigiTag"))),
       tokenRecHit_(
-          consumes<edm::DetSetVector<TotemTimingRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHits"))),
+            consumes<std::vector<TotemTimingRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHits"))),
       timingCalibrationToken_(esConsumes<edm::Transition::BeginRun>()),
       geomEsToken_(esConsumes<edm::Transition::BeginRun>()),
       verbosity_(ps.getUntrackedParameter<unsigned int>("verbosity", 0)),
@@ -236,19 +235,16 @@ void DiamondSampicCalibrationDQMSource::bookHistograms(DQMStore::IBooker &ibooke
 void DiamondSampicCalibrationDQMSource::analyze(const edm::Event &event, const edm::EventSetup &eventSetup) {
   PPSTimingCalibration calib = *hTimingCalib_;
   // get event setup data
-  edm::Handle<edm::DetSetVector<TotemTimingRecHit>> timingRecHits;
+  edm::Handle<std::vector<TotemTimingRecHit>> timingRecHits;
   event.getByToken(tokenRecHit_, timingRecHits);
 
-  edm::Handle<edm::DetSetVector<TotemTimingDigi>> timingDigi;
+  edm::Handle<std::vector<TotemTimingDigi>> timingDigi;
   event.getByToken(totemTimingDigiToken_, timingDigi);
 
   std::unordered_map<uint32_t, uint32_t> detIdToHw;
 
-  for (const auto &digis : *timingDigi) {
-    const CTPPSDiamondDetId detId(digis.detId());
-    for (const auto &digi : digis)
-      detIdToHw[detId] = digi.hardwareId();
-  }
+  for (const auto &digi : *timingDigi)
+    detIdToHw[digi.detId()] = digi.hardwareId();
 
   // Using TotemTimingDigi
   std::set<uint8_t> boardSet;
@@ -257,15 +253,14 @@ void DiamondSampicCalibrationDQMSource::analyze(const edm::Event &event, const e
 
   // End digis
 
-  for (const auto &rechits : *timingRecHits) {
-    const CTPPSDiamondDetId detId(rechits.detId());
-    CTPPSDiamondDetId detId_pot(rechits.detId());
+  for (const auto &rechit : *timingRecHits) {
+    const CTPPSDiamondDetId detId(rechit.detId());
+    CTPPSDiamondDetId detId_pot(rechit.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    CTPPSDiamondDetId detId_plane(rechits.detId());
+    CTPPSDiamondDetId detId_plane(rechit.detId());
     detId_plane.setChannel(0);
 
-    for (const auto &rechit : rechits) {
       if (potPlots_.find(detId_pot) != potPlots_.end()) {
         float UFSDShift = 0.0;
         if (rechit.yWidth() < 3)
@@ -291,7 +286,6 @@ void DiamondSampicCalibrationDQMSource::analyze(const edm::Event &event, const e
             channelPlots_[detId].recHitTime->Fill(rechit.time() + offset);
         }
       }
-    }
   }
   // End RecHits
 

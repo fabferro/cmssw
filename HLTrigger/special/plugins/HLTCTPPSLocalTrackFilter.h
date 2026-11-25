@@ -37,13 +37,13 @@ private:
   edm::ParameterSet param_;
 
   edm::InputTag pixelLocalTrackInputTag_;  // Input tag identifying the pixel detector
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelLocalTrackToken_;
+  edm::EDGetTokenT<std::vector<CTPPSPixelLocalTrack>> pixelLocalTrackToken_;
 
   edm::InputTag stripLocalTrackInputTag_;  // Input tag identifying the strip detector
   edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> stripLocalTrackToken_;
 
   edm::InputTag diamondLocalTrackInputTag_;  // Input tag identifying the diamond detector
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSDiamondLocalTrack>> diamondLocalTrackToken_;
+  edm::EDGetTokenT<std::vector<CTPPSDiamondLocalTrack>> diamondLocalTrackToken_;
 
   bool usePixel_;
   bool useStrip_;

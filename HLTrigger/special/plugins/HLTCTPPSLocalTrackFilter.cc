@@ -75,11 +75,11 @@ HLTCTPPSLocalTrackFilter::HLTCTPPSLocalTrackFilter(const edm::ParameterSet& iCon
       maxTracksPerArm_(iConfig.getParameter<int>("maxTracksPerArm")),
       maxTracksPerPot_(iConfig.getParameter<int>("maxTracksPerPot")) {
   if (usePixel_)
-    pixelLocalTrackToken_ = consumes<edm::DetSetVector<CTPPSPixelLocalTrack>>(pixelLocalTrackInputTag_);
+    pixelLocalTrackToken_ = consumes<std::vector<CTPPSPixelLocalTrack>>(pixelLocalTrackInputTag_);
   if (useStrip_)
     stripLocalTrackToken_ = consumes<std::vector<TotemRPLocalTrack>>(stripLocalTrackInputTag_);
   if (useDiamond_)
-    diamondLocalTrackToken_ = consumes<edm::DetSetVector<CTPPSDiamondLocalTrack>>(diamondLocalTrackInputTag_);
+    diamondLocalTrackToken_ = consumes<std::vector<CTPPSDiamondLocalTrack>>(diamondLocalTrackInputTag_);
 
   LogDebug("") << "HLTCTPPSLocalTrackFilter: "
                   "pixelTag/stripTag/diamondTag/usePixel/useStrip/useDiamond/minTracks/minTracksPerArm/maxTracks/"
@@ -104,22 +104,21 @@ bool HLTCTPPSLocalTrackFilter::filter(edm::StreamID, edm::Event& iEvent, const e
   // happen within the pixels themselves.
   if (usePixel_)  // Pixels correspond to RP 220 in 2017 data
   {
-    edm::Handle<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelTracks;
+    edm::Handle<std::vector<CTPPSPixelLocalTrack>> pixelTracks;
     iEvent.getByToken(pixelLocalTrackToken_, pixelTracks);
 
-    for (const auto& rpv : (*pixelTracks)) {
-      const CTPPSPixelDetId id(rpv.id);
-      if (tracksPerPot.count(rpv.id) == 0)
-        tracksPerPot[rpv.id] = 0;
+    for (const auto& track : *pixelTracks) {
+      const uint32_t potId = track.detId().rawId();
+      const CTPPSPixelDetId id(track.detId());
+      if (tracksPerPot.count(potId) == 0)
+        tracksPerPot[potId] = 0;
 
-      for (auto& track : rpv) {
-        if (track.isValid()) {
-          if (id.arm() == 0)
-            ++arm45Tracks;
-          if (id.arm() == 1)
-            ++arm56Tracks;
-          ++tracksPerPot[rpv.id];
-        }
+      if (track.isValid()) {
+        if (id.arm() == 0)
+          ++arm45Tracks;
+        if (id.arm() == 1)
+          ++arm56Tracks;
+        ++tracksPerPot[potId];
       }
     }
   }
@@ -146,22 +145,21 @@ bool HLTCTPPSLocalTrackFilter::filter(edm::StreamID, edm::Event& iEvent, const e
   }
 
   if (useDiamond_) {
-    edm::Handle<edm::DetSetVector<CTPPSDiamondLocalTrack>> diamondTracks;
+    edm::Handle<std::vector<CTPPSDiamondLocalTrack>> diamondTracks;
     iEvent.getByToken(diamondLocalTrackToken_, diamondTracks);
 
-    for (const auto& rpv : (*diamondTracks)) {
-      const CTPPSDiamondDetId id(rpv.id);
-      if (tracksPerPot.count(rpv.id) == 0)
-        tracksPerPot[rpv.id] = 0;
+    for (const auto& track : *diamondTracks) {
+      const uint32_t potId = track.detId().rawId();
+      const CTPPSDiamondDetId id(track.detId());
+      if (tracksPerPot.count(potId) == 0)
+        tracksPerPot[potId] = 0;
 
-      for (auto& track : rpv) {
-        if (track.isValid()) {
-          if (id.arm() == 0)
-            ++arm45Tracks;
-          if (id.arm() == 1)
-            ++arm56Tracks;
-          ++tracksPerPot[rpv.id];
-        }
+      if (track.isValid()) {
+        if (id.arm() == 0)
+          ++arm45Tracks;
+        if (id.arm() == 1)
+          ++arm56Tracks;
+        ++tracksPerPot[potId];
       }
     }
   }

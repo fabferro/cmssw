@@ -38,6 +38,7 @@
 #include "Geometry/Records/interface/VeryForwardRealGeometryRecord.h"
 
 #include <string>
+#include <unordered_map>
 
 //----------------------------------------------------------------------------------------------------
 
@@ -225,10 +226,10 @@ private:
   void checkEventNumber(const CTPPSDiamondDetId&, const TotemFEDInfo&, const TotemVFATStatus&, PotPlots&, int&) const;
 
   edm::EDGetTokenT<edm::DetSetVector<TotemVFATStatus>> tokenStatus_;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelLocalTrack>> tokenPixelTrack_;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSDiamondDigi>> tokenDigi_;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSDiamondRecHit>> tokenDiamondHit_;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSDiamondLocalTrack>> tokenDiamondTrack_;
+  edm::EDGetTokenT<std::vector<CTPPSPixelLocalTrack>> tokenPixelTrack_;
+  edm::EDGetTokenT<std::vector<CTPPSDiamondDigi>> tokenDigi_;
+  edm::EDGetTokenT<std::vector<CTPPSDiamondRecHit>> tokenDiamondHit_;
+  edm::EDGetTokenT<std::vector<CTPPSDiamondLocalTrack>> tokenDiamondTrack_;
   edm::EDGetTokenT<std::vector<TotemFEDInfo>> tokenFEDInfo_;
 
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> ctppsGeometryRunToken_;
@@ -628,11 +629,11 @@ CTPPSDiamondDQMSource::ChannelPlots::ChannelPlots(DQMStore::IBooker& ibooker, un
 
 CTPPSDiamondDQMSource::CTPPSDiamondDQMSource(const edm::ParameterSet& ps)
     : perLSsaving_(ps.getUntrackedParameter<bool>("perLSsaving", false)),
-      tokenPixelTrack_(consumes<edm::DetSetVector<CTPPSPixelLocalTrack>>(
+      tokenPixelTrack_(consumes<std::vector<CTPPSPixelLocalTrack>>(
           ps.getUntrackedParameter<edm::InputTag>("tagPixelLocalTracks"))),
-      tokenDiamondHit_(consumes<edm::DetSetVector<CTPPSDiamondRecHit>>(
+      tokenDiamondHit_(consumes<std::vector<CTPPSDiamondRecHit>>(
           ps.getUntrackedParameter<edm::InputTag>("tagDiamondRecHits"))),
-      tokenDiamondTrack_(consumes<edm::DetSetVector<CTPPSDiamondLocalTrack>>(
+      tokenDiamondTrack_(consumes<std::vector<CTPPSDiamondLocalTrack>>(
           ps.getUntrackedParameter<edm::InputTag>("tagDiamondLocalTracks"))),
       ctppsGeometryRunToken_(esConsumes<CTPPSGeometry, VeryForwardRealGeometryRecord, edm::Transition::BeginRun>()),
       ctppsGeometryEventToken_(esConsumes<CTPPSGeometry, VeryForwardRealGeometryRecord>()),
@@ -649,7 +650,7 @@ CTPPSDiamondDQMSource::CTPPSDiamondDQMSource(const edm::ParameterSet& ps)
   if (extract_digi_info_) {
     tokenStatus_ = consumes<edm::DetSetVector<TotemVFATStatus>>(ps.getUntrackedParameter<edm::InputTag>("tagStatus"));
     tokenFEDInfo_ = consumes<std::vector<TotemFEDInfo>>(ps.getUntrackedParameter<edm::InputTag>("tagFEDInfo"));
-    tokenDigi_ = consumes<edm::DetSetVector<CTPPSDiamondDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"));
+    tokenDigi_ = consumes<std::vector<CTPPSDiamondDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"));
   }
   for (const auto& pset : ps.getParameter<std::vector<edm::ParameterSet>>("offsetsOOT")) {
     runParameters_.emplace_back(
@@ -752,7 +753,7 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
   // get event data
 
   edm::Handle<edm::DetSetVector<TotemVFATStatus>> diamondVFATStatus;
-  edm::Handle<edm::DetSetVector<CTPPSDiamondDigi>> diamondDigis;
+  edm::Handle<std::vector<CTPPSDiamondDigi>> diamondDigis;
   edm::Handle<std::vector<TotemFEDInfo>> fedInfo;
   if (extract_digi_info_) {
     event.getByToken(tokenStatus_, diamondVFATStatus);
@@ -760,13 +761,13 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
     event.getByToken(tokenFEDInfo_, fedInfo);
   }
 
-  edm::Handle<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelTracks;
+  edm::Handle<std::vector<CTPPSPixelLocalTrack>> pixelTracks;
   event.getByToken(tokenPixelTrack_, pixelTracks);
 
-  edm::Handle<edm::DetSetVector<CTPPSDiamondRecHit>> diamondRecHits;
+  edm::Handle<std::vector<CTPPSDiamondRecHit>> diamondRecHits;
   event.getByToken(tokenDiamondHit_, diamondRecHits);
 
-  edm::Handle<edm::DetSetVector<CTPPSDiamondLocalTrack>> diamondLocalTracks;
+  edm::Handle<std::vector<CTPPSDiamondLocalTrack>> diamondLocalTracks;
   event.getByToken(tokenDiamondTrack_, diamondLocalTracks);
 
   const CTPPSGeometry* ctppsGeometry = &iSetup.getData(ctppsGeometryEventToken_);
@@ -798,6 +799,14 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
     return;
   }
 
+  std::unordered_map<uint32_t, size_t> diamondTracksPerPot;
+  for (const auto& track : *diamondLocalTracks)
+    ++diamondTracksPerPot[track.detId().rawId()];
+
+  std::unordered_map<uint32_t, size_t> pixelTrackCounts;
+  for (const auto& track : *pixelTracks)
+    ++pixelTrackCounts[track.detId().rawId()];
+
   //------------------------------
   // Sector Plots
   //------------------------------
@@ -808,9 +817,9 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
     //   - 220cyl: "cylindrical pot" station  (id=1), in horizontal Roman Pot with id=6 ("far")
     //   - 220nr_hr: "220m"  station (id=2), in horizontal Roman Pot with id=2 ("near horizontal")
 
-    for (const auto& tracks_220nr_hr : *diamondLocalTracks) {
+    for (const auto& track_220nr_hr : *diamondLocalTracks) {
       // to preprare correlation plot, we need to select tracks from nr_hr pot in 220m station
-      const CTPPSDiamondDetId detId_220nr_hr(tracks_220nr_hr.detId());
+      const CTPPSDiamondDetId detId_220nr_hr(track_220nr_hr.detId());
 
       // selecting only tracks from 220nr station, realised as skipping tracks from 220cyl station
       if ((detId_220nr_hr.rp() == CTPPS_DIAMOND_CYL_RP_ID) &&
@@ -821,17 +830,16 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
         continue;
       TH1F* trackHistoInTimeTmp = potPlots_[detId_220nr_hr.rpId()].trackDistribution->getTH1F();
 
-      for (const auto& track_220nr_hr : tracks_220nr_hr) {
-        if (!track_220nr_hr.isValid())
-          continue;
+      if (!track_220nr_hr.isValid())
+        continue;
 
-        // get the bins from per-pot plots
-        int startBin_220nr_hr = trackHistoInTimeTmp->FindBin(
-            track_220nr_hr.x0() - diamShifts_[detId_220nr_hr.rpId()].global - track_220nr_hr.x0Sigma());
-        int numOfBins_220nr_hr = 2 * track_220nr_hr.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+      // get the bins from per-pot plots
+      int startBin_220nr_hr = trackHistoInTimeTmp->FindBin(
+          track_220nr_hr.x0() - diamShifts_[detId_220nr_hr.rpId()].global - track_220nr_hr.x0Sigma());
+      int numOfBins_220nr_hr = 2 * track_220nr_hr.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
 
-        for (const auto& tracks_220cyl : *diamondLocalTracks) {
-          CTPPSDiamondDetId detId_220cyl(tracks_220cyl.detId());
+      for (const auto& track_220cyl : *diamondLocalTracks) {
+        CTPPSDiamondDetId detId_220cyl(track_220cyl.detId());
 
           // select tracks in the same arm, but belonging to the cylindrical pot
           // that means skipping tracks from the opposite arm (skip if 220nr_hr.arm != 220cyl.arm)
@@ -846,27 +854,25 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
           TAxis* trackHistoTmpXAxis = trackHistoTmp->GetXaxis();
           TAxis* trackHistoTmpYAxis = trackHistoTmp->GetYaxis();
 
-          for (const auto& track_220cyl : tracks_220cyl) {
-            if (!track_220cyl.isValid())
-              continue;
-            int startBin_220cyl = trackHistoTmpYAxis->FindBin(
-                track_220cyl.x0() - diamShifts_[detId_220cyl.rpId()].global - track_220cyl.x0Sigma());
-            int numOfBins_220cyl = 2 * track_220cyl.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+        if (!track_220cyl.isValid())
+          continue;
+        int startBin_220cyl = trackHistoTmpYAxis->FindBin(
+            track_220cyl.x0() - diamShifts_[detId_220cyl.rpId()].global - track_220cyl.x0Sigma());
+        int numOfBins_220cyl = 2 * track_220cyl.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
 
-            // fill the correlation plot
-            for (int i = 0; i < numOfBins_220nr_hr; ++i)
-              for (int y = 0; y < numOfBins_220cyl; ++y) {
-                float track_220nr_hr_x = trackHistoTmpXAxis->GetBinCenter(startBin_220nr_hr + i);
-                float track_220cyl_x = trackHistoTmpYAxis->GetBinCenter(startBin_220cyl + y);
-                trackHistoTmp->Fill(track_220nr_hr_x, track_220cyl_x);
-                // fill low multiplicity histogram
-                if (tracks_220nr_hr.size() < 3 && tracks_220cyl.size() < trackCorrelationThreshold_)
-                  sectorPlots_[detId_220cyl.armId()].trackCorrelationLowMultiplicity->Fill(track_220nr_hr_x,
-                                                                                           track_220cyl_x);
-              }
+        // fill the correlation plot
+        for (int i = 0; i < numOfBins_220nr_hr; ++i)
+          for (int y = 0; y < numOfBins_220cyl; ++y) {
+            float track_220nr_hr_x = trackHistoTmpXAxis->GetBinCenter(startBin_220nr_hr + i);
+            float track_220cyl_x = trackHistoTmpYAxis->GetBinCenter(startBin_220cyl + y);
+            trackHistoTmp->Fill(track_220nr_hr_x, track_220cyl_x);
+            // fill low multiplicity histogram
+            if (diamondTracksPerPot.at(detId_220nr_hr.rawId()) < 3 &&
+                diamondTracksPerPot.at(detId_220cyl.rawId()) < trackCorrelationThreshold_)
+              sectorPlots_[detId_220cyl.armId()].trackCorrelationLowMultiplicity->Fill(track_220nr_hr_x,
+                                                                                       track_220cyl_x);
           }
         }
-      }
     }
 
   //------------------------------
@@ -879,15 +885,14 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
 
   if (extract_digi_info_) {
     // Using CTPPSDiamondDigi
-    for (const auto& digis : *diamondDigis) {
-      const CTPPSDiamondDetId detId(digis.detId()), detId_pot(detId.rpId());
-      for (const auto& digi : digis) {
-        if (detId.channel() == CHANNEL_OF_VFAT_CLOCK)
-          continue;
-        if (potPlots_.count(detId_pot) == 0)
-          continue;
-        //Leading without trailing investigation
-        if (digi.leadingEdge() != 0 || digi.trailingEdge() != 0) {
+    for (const auto& digi : *diamondDigis) {
+      const CTPPSDiamondDetId detId(digi.detId()), detId_pot(detId.rpId());
+      if (detId.channel() == CHANNEL_OF_VFAT_CLOCK)
+        continue;
+      if (potPlots_.count(detId_pot) == 0)
+        continue;
+      //Leading without trailing investigation
+      if (digi.leadingEdge() != 0 || digi.trailingEdge() != 0) {
           ++potPlots_[detId_pot].HitCounter;
           if (digi.leadingEdge() != 0) {
             potPlots_[detId_pot].leadingEdgeCumulative_all->Fill(HPTDC_BIN_WIDTH_NS * digi.leadingEdge());
@@ -918,7 +923,6 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
         }
         if (digi.multipleHit())
           ++potPlots_[detId_pot].MHCounter;
-      }
     }
   }
 
@@ -950,10 +954,8 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
   std::unordered_map<unsigned int, std::set<unsigned int>> planes_inclusive;
 
   auto lumiCache = luminosityBlockCache(event.getLuminosityBlock().index());
-  for (const auto& rechits : *diamondRecHits) {
-    const CTPPSDiamondDetId detId(rechits.detId()), detId_pot(detId.rpId());
-
-    for (const auto& rechit : rechits) {
+  for (const auto& rechit : *diamondRecHits) {
+      const CTPPSDiamondDetId detId(rechit.detId()), detId_pot(detId.rpId());
       planes_inclusive[detId_pot].insert(detId.plane());
       if (excludeMultipleHits_ && rechit.multipleHits() > 0)
         continue;
@@ -1016,7 +1018,6 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
       if (rechit.ootIndex() != CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING &&
           potPlots_[detId_pot].activity_per_bx.count(rechit.ootIndex()) > 0)
         potPlots_[detId_pot].activity_per_bx.at(rechit.ootIndex())->Fill(event.bunchCrossing());
-    }
   }
 
   for (const auto& plt : potPlots_) {
@@ -1026,13 +1027,12 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
   }
 
   // Using CTPPSDiamondLocalTrack
-  for (const auto& tracks : *diamondLocalTracks) {
-    const CTPPSDiamondDetId detId(tracks.detId()), detId_pot(detId.rpId());
+  for (const auto& track : *diamondLocalTracks) {
+    const CTPPSDiamondDetId detId(track.detId()), detId_pot(detId.rpId());
     const auto& x_shift = diamShifts_.at(detId_pot);
     // extract the rotation angle for the diamond pot
     auto cosRotAngle = diamRotations_.at(detId_pot) * CTPPSGeometry::Vector(1, 0, 0);
 
-    for (const auto& track : tracks) {
       if (!track.isValid())
         continue;
       if (track.ootIndex() == CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING)
@@ -1066,29 +1066,24 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
         // potPlots_[detId_pot].trackTimeVsLS->Fill(event.luminosityBlock(),track.time());
         potPlots_[detId_pot].trackTimeVsBX->Fill(event.bunchCrossing(), track.time());
       }
-    }
   }
 
   // Channel efficiency using CTPPSDiamondLocalTrack
-  for (const auto& tracks : *diamondLocalTracks) {
-    const CTPPSDiamondDetId detId(tracks.detId()), detId_pot(detId.rpId());
-    for (const auto& track : tracks) {
+  for (const auto& track : *diamondLocalTracks) {
+    const CTPPSDiamondDetId detId(track.detId()), detId_pot(detId.rpId());
       // Find hits and planes in the track
       int numOfHits = 0;
       std::set<int> planesInTrackSet;
-      for (const auto& vec : *diamondRecHits) {
-        const CTPPSDiamondDetId detid(vec.detId());
+      for (const auto& hit : *diamondRecHits) {
+        const CTPPSDiamondDetId detid(hit.detId());
         if (detid.arm() != detId_pot.arm())
           continue;
-
-        for (const auto& hit : vec) {
-          // first check if the hit contributes to the track
-          if (track.containsHit(hit)) {
-            ++numOfHits;
-            planesInTrackSet.insert(detid.plane());
-          }
+        // first check if the hit contributes to the track
+        if (track.containsHit(hit)) {
+          ++numOfHits;
+          planesInTrackSet.insert(detid.plane());
         }
-      }
+        }
 
       if (numOfHits > 0 && numOfHits <= 10 && planesInTrackSet.size() > 2) {
         for (const auto& plt_vs_ch : channelPlots_) {  // loop over all channels registered in geometry
@@ -1103,24 +1098,20 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
           if (channelAlignedWithTrack(ctppsGeometry, detId, track, 0.2)) {
             // Channel should fire
             ++potPlots_[detId_pot].effDoublecountingChMap[map_index];
-            for (const auto& rechits : *diamondRecHits) {
-              const CTPPSDiamondDetId detId_hit(rechits.detId());
-              if (detId_hit == detId)
-                for (const auto& rechit : rechits)
-                  if (track.containsHit(rechit, 1))  // Channel fired
-                    ++potPlots_[detId_pot].effTriplecountingChMap[map_index];
+            for (const auto& rechit : *diamondRecHits) {
+              const CTPPSDiamondDetId detId_hit(rechit.detId());
+              if (detId_hit == detId && track.containsHit(rechit, 1))  // Channel fired
+                ++potPlots_[detId_pot].effTriplecountingChMap[map_index];
             }
           }
         }
       }
-    }
   }
 
   // Tomography of diamonds using pixel
-  for (const auto& rechits : *diamondRecHits) {
-    const CTPPSDiamondDetId detId(rechits.detId()), detId_pot(detId.rpId());
+  for (const auto& rechit : *diamondRecHits) {
+    const CTPPSDiamondDetId detId(rechit.detId()), detId_pot(detId.rpId());
     const auto pix_shift = diamShifts_.at(detId_pot).withPixels;
-    for (const auto& rechit : rechits) {
       if (excludeMultipleHits_ && rechit.multipleHits() > 0)
         continue;
       if (rechit.toT() == 0)
@@ -1130,23 +1121,20 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
       if (potPlots_.count(detId_pot) == 0)
         continue;
 
-      for (const auto& ds : *pixelTracks) {
-        if (ds.size() > 1)
+      for (const auto& track : *pixelTracks) {
+        const CTPPSPixelDetId pixId(track.detId());
+        if (pixelTrackCounts.at(pixId.rawId()) > 1)
           continue;
-        const CTPPSPixelDetId pixId(ds.detId());
         if (pixId.station() != CTPPS_PIXEL_STATION_ID || pixId.rp() != CTPPS_PIXEL_FAR_RP_ID)
           continue;
-        for (const auto& lt : ds) {
-          if (lt.isValid() && pixId.arm() == detId_pot.arm()) {
-            if (rechit.ootIndex() != CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING && rechit.ootIndex() >= 0 &&
-                potPlots_[detId_pot].pixelTomographyAll.count(rechit.ootIndex()) > 0 && lt.x0() - pix_shift < 24)
-              potPlots_[detId_pot]
-                  .pixelTomographyAll.at(rechit.ootIndex())
-                  ->Fill(lt.x0() - pix_shift + 25 * detId.plane(), lt.y0());
-          }
+        if (track.isValid() && pixId.arm() == detId_pot.arm()) {
+          if (rechit.ootIndex() != CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING && rechit.ootIndex() >= 0 &&
+              potPlots_[detId_pot].pixelTomographyAll.count(rechit.ootIndex()) > 0 && track.x0() - pix_shift < 24)
+            potPlots_[detId_pot]
+                .pixelTomographyAll.at(rechit.ootIndex())
+                ->Fill(track.x0() - pix_shift + 25 * detId.plane(), track.y0());
         }
       }
-    }
   }
 
   //------------------------------
@@ -1178,9 +1166,8 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
   // Using CTPPSDiamondDigi
   std::unordered_map<unsigned int, unsigned int> channelsPerPlane;
   if (extract_digi_info_) {
-    for (const auto& digis : *diamondDigis) {
-      const CTPPSDiamondDetId detId(digis.detId()), detId_plane(detId.planeId());
-      for (const auto& digi : digis) {
+    for (const auto& digi : *diamondDigis) {
+      const CTPPSDiamondDetId detId(digi.detId()), detId_plane(detId.planeId());
         if (detId.channel() == CHANNEL_OF_VFAT_CLOCK)
           continue;
         if (planePlots_.count(detId_plane) == 0)
@@ -1197,7 +1184,6 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
         } else if ((digi.leadingEdge() == 0 && (digi.trailingEdge() != 0))) {  // check dropped leading edges
           planePlots_[detId_plane].trailingEdgeCumulativePerPlane_te->Fill(HPTDC_BIN_WIDTH_NS * digi.trailingEdge());
         }
-      }
     }
   }
 
@@ -1205,9 +1191,8 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
     planePlots_[plt.first].hit_multiplicity->Fill(plt.second);
 
   // Using CTPPSDiamondRecHit
-  for (const auto& rechits : *diamondRecHits) {
-    const CTPPSDiamondDetId detId(rechits.detId()), detId_plane(detId.planeId()), detId_pot(detId.rpId());
-    for (const auto& rechit : rechits) {
+  for (const auto& rechit : *diamondRecHits) {
+    const CTPPSDiamondDetId detId(rechit.detId()), detId_plane(detId.planeId()), detId_pot(detId.rpId());
       if (excludeMultipleHits_ && rechit.multipleHits() > 0)
         continue;
       if (rechit.toT() == 0)
@@ -1228,49 +1213,42 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
             hitHistoTmp->Fill(hitHistoTmp->GetBinCenter(startBin + i));
         }
       }
-    }
   }
 
   //Tomography of diamonds using pixel and Efficiency WRT Pixels
-  for (const auto& ds : *pixelTracks) {
-    const CTPPSPixelDetId pixId(ds.detId());
+  for (const auto& track : *pixelTracks) {
+    const CTPPSPixelDetId pixId(track.detId());
     if (pixId.station() != CTPPS_PIXEL_STATION_ID || pixId.rp() != CTPPS_PIXEL_FAR_RP_ID)
       continue;
-    if (ds.size() > 1)
-      continue;
-    for (const auto& lt : ds) {
-      if (lt.isValid()) {
-        for (const auto& sh_vs_id : diamShifts_) {
-          const CTPPSDiamondDetId& detId_pot = sh_vs_id.first;
-          const auto& shift = sh_vs_id.second;
-          if (detId_pot.arm() == pixId.arm())
-            // For efficieny
-            potPlots_[detId_pot].pixelTracksMap.Fill(lt.x0() - shift.withPixels, lt.y0());
-        }
-
-        std::set<CTPPSDiamondDetId> planesWitHits_set;
-        for (const auto& rechits : *diamondRecHits) {
-          const CTPPSDiamondDetId detId(rechits.detId()), detId_plane(detId.planeId()), detId_pot(detId.rpId());
-          const auto pix_shift = diamShifts_.at(detId_pot).withPixels;
-          for (const auto& rechit : rechits) {
-            if (excludeMultipleHits_ && rechit.multipleHits() > 0)
-              continue;
-            if (rechit.ootIndex() == CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING || rechit.toT() == 0)
-              continue;
-            if (planePlots_.count(detId_plane) == 0)
-              continue;
-            if (pixId.arm() == detId_plane.arm() && lt.x0() - pix_shift < 24) {
-              planePlots_[detId_plane].pixelTomography_far->Fill(lt.x0() - pix_shift + 25 * rechit.ootIndex(), lt.y0());
-              if (centralOOT_ != -999 && rechit.ootIndex() == centralOOT_)
-                planesWitHits_set.insert(detId_plane);
-            }
-          }
-        }
-
-        for (auto& planeId : planesWitHits_set)
-          planePlots_[planeId].pixelTracksMapWithDiamonds.Fill(lt.x0() - diamShifts_.at(planeId.rpId()).withPixels,
-                                                               lt.y0());
+    if (track.isValid()) {
+      for (const auto& sh_vs_id : diamShifts_) {
+        const CTPPSDiamondDetId& detId_pot = sh_vs_id.first;
+        const auto& shift = sh_vs_id.second;
+        if (detId_pot.arm() == pixId.arm())
+          // For efficieny
+          potPlots_[detId_pot].pixelTracksMap.Fill(track.x0() - shift.withPixels, track.y0());
       }
+
+      std::set<CTPPSDiamondDetId> planesWitHits_set;
+      for (const auto& rechit : *diamondRecHits) {
+        const CTPPSDiamondDetId detId(rechit.detId()), detId_plane(detId.planeId()), detId_pot(detId.rpId());
+        const auto pix_shift = diamShifts_.at(detId_pot).withPixels;
+          if (excludeMultipleHits_ && rechit.multipleHits() > 0)
+            continue;
+          if (rechit.ootIndex() == CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING || rechit.toT() == 0)
+            continue;
+          if (planePlots_.count(detId_plane) == 0)
+            continue;
+          if (pixId.arm() == detId_plane.arm() && track.x0() - pix_shift < 24) {
+            planePlots_[detId_plane].pixelTomography_far->Fill(track.x0() - pix_shift + 25 * rechit.ootIndex(), track.y0());
+            if (centralOOT_ != -999 && rechit.ootIndex() == centralOOT_)
+              planesWitHits_set.insert(detId_plane);
+          }
+      }
+
+      for (auto& planeId : planesWitHits_set)
+        planePlots_[planeId].pixelTracksMapWithDiamonds.Fill(track.x0() - diamShifts_.at(planeId.rpId()).withPixels,
+                                                             track.y0());
     }
   }
 
@@ -1280,9 +1258,8 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
 
   // digi profile cumulative
   if (extract_digi_info_) {
-    for (const auto& digis : *diamondDigis) {
-      const CTPPSDiamondDetId detId(digis.detId());
-      for (const auto& digi : digis) {
+    for (const auto& digi : *diamondDigis) {
+      const CTPPSDiamondDetId detId(digi.detId());
         if (detId.channel() == CHANNEL_OF_VFAT_CLOCK)
           continue;
         if (channelPlots_.count(detId) != 0) {
@@ -1310,15 +1287,13 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
             }
           }
         }
-      }
     }
   }
 
   // Using CTPPSDiamondRecHit
 
-  for (const auto& rechits : *diamondRecHits) {
-    CTPPSDiamondDetId detId(rechits.detId());
-    for (const auto& rechit : rechits) {
+  for (const auto& rechit : *diamondRecHits) {
+    CTPPSDiamondDetId detId(rechit.detId());
       if (excludeMultipleHits_ && rechit.multipleHits() > 0)
         continue;
       if (channelPlots_.count(detId) != 0) {
@@ -1333,14 +1308,12 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
             channelPlots_[detId].activity_per_bx.count(rechit.ootIndex()) > 0)
           channelPlots_[detId].activity_per_bx.at(rechit.ootIndex())->Fill(event.bunchCrossing());
       }
-    }
   }
 
   // Tomography of diamonds using pixel
-  for (const auto& rechits : *diamondRecHits) {
-    const CTPPSDiamondDetId detId(rechits.detId()), detId_pot(detId.rpId());
+  for (const auto& rechit : *diamondRecHits) {
+    const CTPPSDiamondDetId detId(rechit.detId()), detId_pot(detId.rpId());
     const auto shift_pix = diamShifts_.at(detId_pot).withPixels;
-    for (const auto& rechit : rechits) {
       if (excludeMultipleHits_ && rechit.multipleHits() > 0)
         continue;
       if (rechit.ootIndex() == CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING || rechit.toT() == 0)
@@ -1350,18 +1323,15 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
       if (channelPlots_.count(detId) == 0)
         continue;
 
-      for (const auto& ds : *pixelTracks) {
-        const CTPPSPixelDetId pixId(ds.detId());
+      for (const auto& track : *pixelTracks) {
+        const CTPPSPixelDetId pixId(track.detId());
         if (pixId.station() != CTPPS_PIXEL_STATION_ID || pixId.rp() != CTPPS_PIXEL_FAR_RP_ID)
           continue;
-        if (ds.size() > 1)
+        if (pixelTrackCounts.at(pixId.rawId()) > 1)
           continue;
-        for (const auto& lt : ds) {
-          if (lt.isValid() && pixId.arm() == detId.arm() && lt.x0() - shift_pix < 24)
-            channelPlots_[detId].pixelTomography_far->Fill(lt.x0() - shift_pix + 25 * rechit.ootIndex(), lt.y0());
-        }
+        if (track.isValid() && pixId.arm() == detId.arm() && track.x0() - shift_pix < 24)
+          channelPlots_[detId].pixelTomography_far->Fill(track.x0() - shift_pix + 25 * rechit.ootIndex(), track.y0());
       }
-    }
   }
 }
 

@@ -39,7 +39,7 @@ public:
 
 private:
   const edm::InputTag pixelLocalTrackInputTag_;  // Input tag identifying the pixel detector
-  const edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelLocalTrackToken_;
+  const edm::EDGetTokenT<std::vector<CTPPSPixelLocalTrack>> pixelLocalTrackToken_;
 
   const int minTracks_;
   const int maxTracks_;
@@ -65,7 +65,7 @@ void HLTPPSCalFilter::fillDescriptions(edm::ConfigurationDescriptions& descripti
 
 HLTPPSCalFilter::HLTPPSCalFilter(const edm::ParameterSet& iConfig)
     : pixelLocalTrackInputTag_(iConfig.getParameter<edm::InputTag>("pixelLocalTrackInputTag")),
-      pixelLocalTrackToken_(consumes<edm::DetSetVector<CTPPSPixelLocalTrack>>(pixelLocalTrackInputTag_)),
+      pixelLocalTrackToken_(consumes<std::vector<CTPPSPixelLocalTrack>>(pixelLocalTrackInputTag_)),
       minTracks_(iConfig.getParameter<int>("minTracks")),
       maxTracks_(iConfig.getParameter<int>("maxTracks")),
       do_express_(iConfig.getParameter<bool>("do_express")) {}
@@ -84,23 +84,32 @@ bool HLTPPSCalFilter::filter(edm::StreamID, edm::Event& iEvent, const edm::Event
   pixel_filter_[CTPPSPixelDetId(1, 2, 3)] = false;
 
   // filter on pixels (2017+) selection
-  edm::Handle<edm::DetSetVector<CTPPSPixelLocalTrack>> pixelTracks;
+  edm::Handle<std::vector<CTPPSPixelLocalTrack>> pixelTracks;
   iEvent.getByToken(pixelLocalTrackToken_, pixelTracks);
 
-  for (const auto& rpv : *pixelTracks) {
-    if (pixel_filter_.count(rpv.id) == 0) {
+  std::unordered_map<uint32_t, int> validTracksPerPot;
+  for (const auto& track : *pixelTracks) {
+    const uint32_t detId = track.detId().rawId();
+    if (pixel_filter_.count(detId) == 0) {
       continue;
     }
     // assume pass condition if there is at least one track
-    pixel_filter_.at(rpv.id) = true;
+    pixel_filter_.at(detId) = true;
 
     // count number of valid tracks
-    const auto ntrks = std::count_if(rpv.begin(), rpv.end(), valid_trks);
+    if (valid_trks(track))
+      ++validTracksPerPot[detId];
+  }
+
+  for (auto& [detId, passes] : pixel_filter_) {
+    if (!passes)
+      continue;
+    const auto ntrks = validTracksPerPot[detId];
     // fail condition if ntrks not within minTracks, maxTracks values
     if (minTracks_ > 0 && ntrks < minTracks_)
-      pixel_filter_.at(rpv.id) = false;
+      passes = false;
     if (maxTracks_ > 0 && ntrks > maxTracks_)
-      pixel_filter_.at(rpv.id) = false;
+      passes = false;
   }
 
   // compilation of filter conditions

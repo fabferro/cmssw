@@ -15,13 +15,13 @@
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
-
 #include "DataFormats/CTPPSDetId/interface/CTPPSDetId.h"
 #include "DataFormats/CTPPSDetId/interface/CTPPSPixelDetId.h"
 #include "DataFormats/CTPPSDigi/interface/CTPPSPixelDigi.h"
 
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 //-----------------------------------------------------------------------------
 
@@ -36,7 +36,7 @@ protected:
   void analyze(edm::Event const &e, edm::EventSetup const &eSetup) override;
 
 private:
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelDigi>> const tokenDigi_;
+  edm::EDGetTokenT<std::vector<CTPPSPixelDigi>> const tokenDigi_;
 
   static constexpr int kNArms_ = 2;
   static constexpr int kNStationMAX_ = 3;  // in an arm
@@ -73,7 +73,7 @@ private:
 //-------------------------------------------------------------------------------
 
 CTPPSRandomDQMSource::CTPPSRandomDQMSource(const edm::ParameterSet &ps)
-    : tokenDigi_(consumes<edm::DetSetVector<CTPPSPixelDigi>>(ps.getParameter<edm::InputTag>("tagRPixDigi"))),
+    : tokenDigi_(consumes<std::vector<CTPPSPixelDigi>>(ps.getParameter<edm::InputTag>("tagRPixDigi"))),
       folderName_(ps.getUntrackedParameter<std::string>("folderName", "PPSRANDOM/RandomPixel")),
       rpStatusWord_(ps.getUntrackedParameter<unsigned int>("RPStatusWord", 0x8008)) {
   for (int stn = 0; stn < kStationIDMAX_; stn++) {
@@ -163,6 +163,10 @@ void CTPPSRandomDQMSource::analyze(edm::Event const &event, edm::EventSetup cons
 
   hBX_->Fill(event.bunchCrossing());
 
+  std::unordered_map<uint32_t, int> digisPerPlane;
+  for (const auto &digi : *pixDigi)
+    ++digisPerPlane[digi.detId()];
+
   for (int arm = 0; arm < 2; arm++) {
     for (int stn = 0; stn < kNStationMAX_; stn++) {
       if (!stationStatus_[stn])
@@ -176,11 +180,9 @@ void CTPPSRandomDQMSource::analyze(edm::Event const &event, edm::EventSetup cons
 
         for (int p = 0; p < kNplaneMAX_; p++) {
           CTPPSPixelDetId planeId(arm, stn, rp, p);
-          auto pix_d = pixDigi->find(planeId.rawId());
-          if (pix_d != pixDigi->end()) {
-            int n_digis = pix_d->size();
-            h2HitsVsBXRandoms_[index]->Fill(event.bunchCrossing(), p, n_digis);
-          }
+          auto pix_d = digisPerPlane.find(planeId.rawId());
+          if (pix_d != digisPerPlane.end())
+            h2HitsVsBXRandoms_[index]->Fill(event.bunchCrossing(), p, pix_d->second);
         }
       }  // end for (int rp=0; rp<kNRPotsMAX_; rp++) {
     }  // end for (int stn = 0; stn < kNStationMAX_; stn++) {

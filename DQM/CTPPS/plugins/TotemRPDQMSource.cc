@@ -49,9 +49,9 @@ private:
   edm::EDGetTokenT<edm::DetSetVector<TotemVFATStatus>> tokenStatus;
   edm::EDGetTokenT<edm::DetSetVector<TotemRPDigi>> tokenDigi;
   edm::EDGetTokenT<edm::DetSetVector<TotemRPCluster>> tokenCluster;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPRecHit>> tokenRecHit;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPUVPattern>> tokenUVPattern;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPLocalTrack>> tokenLocalTrack;
+  edm::EDGetTokenT<std::vector<TotemRPRecHit>> tokenRecHit;
+  edm::EDGetTokenT<std::vector<TotemRPUVPattern>> tokenUVPattern;
+  edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> tokenLocalTrack;
 
   edm::ESGetToken<CTPPSGeometry, VeryForwardRealGeometryRecord> geometryToken_;
 
@@ -186,9 +186,9 @@ TotemRPDQMSource::TotemRPDQMSource(const edm::ParameterSet &ps)
 
   tokenDigi = consumes<DetSetVector<TotemRPDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"));
   tokenCluster = consumes<edm::DetSetVector<TotemRPCluster>>(ps.getUntrackedParameter<edm::InputTag>("tagCluster"));
-  tokenRecHit = consumes<edm::DetSetVector<TotemRPRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHit"));
-  tokenUVPattern = consumes<DetSetVector<TotemRPUVPattern>>(ps.getUntrackedParameter<edm::InputTag>("tagUVPattern"));
-  tokenLocalTrack = consumes<DetSetVector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"));
+  tokenRecHit = consumes<std::vector<TotemRPRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHit"));
+  tokenUVPattern = consumes<std::vector<TotemRPUVPattern>>(ps.getUntrackedParameter<edm::InputTag>("tagUVPattern"));
+  tokenLocalTrack = consumes<std::vector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"));
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -236,13 +236,13 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   Handle<DetSetVector<TotemRPCluster>> digCluster;
   event.getByToken(tokenCluster, digCluster);
 
-  Handle<DetSetVector<TotemRPRecHit>> hits;
+  Handle<std::vector<TotemRPRecHit>> hits;
   event.getByToken(tokenRecHit, hits);
 
-  Handle<DetSetVector<TotemRPUVPattern>> patterns;
+  Handle<std::vector<TotemRPUVPattern>> patterns;
   event.getByToken(tokenUVPattern, patterns);
 
-  Handle<DetSetVector<TotemRPLocalTrack>> tracks;
+  Handle<std::vector<TotemRPLocalTrack>> tracks;
   event.getByToken(tokenLocalTrack, tracks);
 
   // check validity
@@ -338,13 +338,11 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   }
 
   // plane efficiency plots
-  for (auto &ds : *tracks) {
-    CTPPSDetId rpId(ds.detId());
-
-    for (auto &ft : ds) {
+  for (const auto &ft : *tracks) {
       if (!ft.isValid())
         continue;
 
+      CTPPSDetId rpId(ft.detId());
       double rp_z = geometry.rpTranslation(rpId).z();
 
       for (unsigned int plNum = 0; plNum < 10; ++plNum) {
@@ -363,14 +361,13 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
         double ft_v = geometry.globalToLocal(plId, CTPPSGeometry::Vector(ft_x, ft_y, ft_z)).y();
 
         bool hasMatchingHit = false;
-        const auto &hit_ds_it = hits->find(plId);
-        if (hit_ds_it != hits->end()) {
-          for (const auto &h : *hit_ds_it) {
-            bool match = (fabs(ft_v - h.position()) < 2. * 0.066);
-            if (match) {
-              hasMatchingHit = true;
-              break;
-            }
+        for (const auto &h : *hits) {
+          if (h.detId() != plId)
+            continue;
+          bool match = (fabs(ft_v - h.position()) < 2. * 0.066);
+          if (match) {
+            hasMatchingHit = true;
+            break;
           }
         }
 
@@ -378,7 +375,6 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
         if (hasMatchingHit)
           plots.efficiency_num->Fill(ft_v);
       }
-    }
   }
 
   //------------------------------
@@ -388,11 +384,8 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   map<unsigned int, set<unsigned int>> planes;
   map<unsigned int, set<unsigned int>> planes_u;
   map<unsigned int, set<unsigned int>> planes_v;
-  for (const auto &ds : *hits) {
-    if (ds.empty())
-      continue;
-
-    TotemRPDetId detId(ds.detId());
+  for (const auto &hit : *hits) {
+    TotemRPDetId detId(hit.detId());
     unsigned int planeNum = detId.plane();
     CTPPSDetId rpId = detId.rpId();
 
@@ -453,29 +446,23 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   }
 
   // recognized pattern histograms
-  for (auto &ds : *patterns) {
-    CTPPSDetId rpId(ds.detId());
+  std::map<unsigned int, std::pair<unsigned int, unsigned int>> patternCounts;
+  for (const auto &pattern : *patterns) {
+    auto &counts = patternCounts[pattern.detId().rawId()];
+    if (!pattern.fittable())
+      continue;
+    if (pattern.projection() == TotemRPUVPattern::projU)
+      ++counts.first;
+    else if (pattern.projection() == TotemRPUVPattern::projV)
+      ++counts.second;
+  }
 
-    auto plIt = potPlots.find(rpId);
+  for (const auto &rpAndCounts : patternCounts) {
+    auto plIt = potPlots.find(rpAndCounts.first);
     if (plIt == potPlots.end())
       continue;
-    auto &plots = plIt->second;
-
-    // count U and V patterns
-    unsigned int u = 0, v = 0;
-    for (auto &p : ds) {
-      if (!p.fittable())
-        continue;
-
-      if (p.projection() == TotemRPUVPattern::projU)
-        u++;
-
-      if (p.projection() == TotemRPUVPattern::projV)
-        v++;
-    }
-
-    plots.patterns_u->Fill(u);
-    plots.patterns_v->Fill(v);
+    plIt->second.patterns_u->Fill(rpAndCounts.second.first);
+    plIt->second.patterns_v->Fill(rpAndCounts.second.second);
   }
 
   // event-category histogram
@@ -488,21 +475,9 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
     unsigned int pl_v = planes_v[rpId].size();
 
     // process pattern data for this pot
-    const auto &rp_pat_it = patterns->find(rpId);
-
-    unsigned int pat_u = 0, pat_v = 0;
-    if (rp_pat_it != patterns->end()) {
-      for (auto &p : *rp_pat_it) {
-        if (!p.fittable())
-          continue;
-
-        if (p.projection() == TotemRPUVPattern::projU)
-          pat_u++;
-
-        if (p.projection() == TotemRPUVPattern::projV)
-          pat_v++;
-      }
-    }
+    const auto patternCount = patternCounts.find(rpId);
+    const unsigned int pat_u = patternCount == patternCounts.end() ? 0 : patternCount->second.first;
+    const unsigned int pat_v = patternCount == patternCounts.end() ? 0 : patternCount->second.second;
 
     // determine category
     signed int category = -1;
@@ -529,9 +504,8 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   // RP track-fit plots
   set<unsigned int> rps_with_tracks;
 
-  for (auto &ds : *tracks) {
-    CTPPSDetId rpId(ds.detId());
-
+  for (auto &ft : *tracks) {
+    CTPPSDetId rpId(ft.detId());
     rps_with_tracks.insert(rpId);
 
     auto plIt = potPlots.find(rpId);
@@ -539,7 +513,6 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
       continue;
     auto &plots = plIt->second;
 
-    for (auto &ft : ds) {
       if (!ft.isValid())
         continue;
 
@@ -584,7 +557,6 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
 
       plots.track_u_profile->Fill(U);
       plots.track_v_profile->Fill(V);
-    }
   }
 
   // restore trigger-sector map from digis

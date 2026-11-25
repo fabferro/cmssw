@@ -43,9 +43,9 @@ private:
 
   unsigned int verbosity;
 
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPRecHit>> tokenRecHit;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPUVPattern>> tokenUVPattern;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPLocalTrack>> tokenLocalTrack;
+  edm::EDGetTokenT<std::vector<TotemRPRecHit>> tokenRecHit;
+  edm::EDGetTokenT<std::vector<TotemRPUVPattern>> tokenUVPattern;
+  edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> tokenLocalTrack;
 
   /// plots related to one (anti)diagonal
   struct DiagonalPlots {
@@ -185,9 +185,9 @@ ElasticPlotDQMSource::PotPlots::PotPlots(DQMStore::IBooker &ibooker, unsigned in
 
 ElasticPlotDQMSource::ElasticPlotDQMSource(const edm::ParameterSet &ps)
     : verbosity(ps.getUntrackedParameter<unsigned int>("verbosity", 0)) {
-  tokenRecHit = consumes<edm::DetSetVector<TotemRPRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHit"));
-  tokenUVPattern = consumes<DetSetVector<TotemRPUVPattern>>(ps.getUntrackedParameter<edm::InputTag>("tagUVPattern"));
-  tokenLocalTrack = consumes<DetSetVector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"));
+  tokenRecHit = consumes<std::vector<TotemRPRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHit"));
+  tokenUVPattern = consumes<std::vector<TotemRPUVPattern>>(ps.getUntrackedParameter<edm::InputTag>("tagUVPattern"));
+  tokenLocalTrack = consumes<std::vector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"));
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -223,13 +223,13 @@ void ElasticPlotDQMSource::bookHistograms(DQMStore::IBooker &ibooker, edm::Run c
 
 void ElasticPlotDQMSource::analyze(edm::Event const &event, edm::EventSetup const &eventSetup) {
   // get event data
-  Handle<DetSetVector<TotemRPRecHit>> hits;
+  Handle<std::vector<TotemRPRecHit>> hits;
   event.getByToken(tokenRecHit, hits);
 
-  Handle<DetSetVector<TotemRPUVPattern>> patterns;
+  Handle<std::vector<TotemRPUVPattern>> patterns;
   event.getByToken(tokenUVPattern, patterns);
 
-  Handle<DetSetVector<TotemRPLocalTrack>> tracks;
+  Handle<std::vector<TotemRPLocalTrack>> tracks;
   event.getByToken(tokenLocalTrack, tracks);
 
   // check validity
@@ -256,11 +256,15 @@ void ElasticPlotDQMSource::analyze(edm::Event const &event, edm::EventSetup cons
   map<unsigned int, bool> rp_pat_suff;
   map<unsigned int, const TotemRPLocalTrack *> rp_track;
 
-  for (const auto &ds : *hits) {
-    TotemRPDetId detId(ds.detId());
+  map<unsigned int, unsigned int> hitsPerPlane;
+  for (const auto &hit : *hits)
+    ++hitsPerPlane[hit.detId().rawId()];
+
+  for (const auto &planeAndCount : hitsPerPlane) {
+    TotemRPDetId detId(planeAndCount.first);
     CTPPSDetId rpId = detId.rpId();
 
-    if (ds.size() > 5) {
+    if (planeAndCount.second > 5) {
       if (detId.isStripsCoordinateUDirection())
         rp_planes_u_too_full[rpId]++;
       else
@@ -268,37 +272,28 @@ void ElasticPlotDQMSource::analyze(edm::Event const &event, edm::EventSetup cons
     }
   }
 
-  for (auto &ds : *patterns) {
-    CTPPSDetId rpId(ds.detId());
-
-    // count U and V patterns
-    unsigned int n_pat_u = 0, n_pat_v = 0;
-    for (auto &p : ds) {
-      if (!p.fittable())
-        continue;
-
-      if (p.projection() == TotemRPUVPattern::projU)
-        n_pat_u++;
-      else if (p.projection() == TotemRPUVPattern::projV)
-        n_pat_v++;
-    }
-
-    rp_pat_suff[rpId] =
-        (n_pat_u > 0 || rp_planes_u_too_full[rpId] >= 3) && (n_pat_v > 0 || rp_planes_v_too_full[rpId] >= 3);
+  map<unsigned int, pair<unsigned int, unsigned int>> patternsPerRP;
+  for (const auto &pattern : *patterns) {
+    auto &counts = patternsPerRP[pattern.detId().rawId()];
+    if (!pattern.fittable())
+      continue;
+    if (pattern.projection() == TotemRPUVPattern::projU)
+      ++counts.first;
+    else if (pattern.projection() == TotemRPUVPattern::projV)
+      ++counts.second;
   }
 
-  for (auto &ds : *tracks) {
-    CTPPSDetId rpId(ds.detId());
+  for (const auto &rpAndCounts : patternsPerRP) {
+    CTPPSDetId rpId(rpAndCounts.first);
+    rp_pat_suff[rpId] = (rpAndCounts.second.first > 0 || rp_planes_u_too_full[rpId] >= 3) &&
+                        (rpAndCounts.second.second > 0 || rp_planes_v_too_full[rpId] >= 3);
+  }
 
-    const TotemRPLocalTrack *track = nullptr;
-    for (auto &ft : ds) {
-      if (ft.isValid()) {
-        track = &ft;
-        break;
-      }
-    }
-
-    rp_track[rpId] = track;
+  for (const auto &track : *tracks) {
+    CTPPSDetId rpId(track.detId());
+    const TotemRPLocalTrack *&selectedTrack = rp_track[rpId];
+    if (selectedTrack == nullptr && track.isValid())
+      selectedTrack = &track;
   }
 
   //------------------------------

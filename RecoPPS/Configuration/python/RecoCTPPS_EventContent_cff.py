@@ -7,21 +7,21 @@ RecoCTPPSAOD = cms.PSet(
 
     # tracking strip
     'keep TotemFEDInfos_totemRPRawToDigi_*_*',
-    'keep std::vector<io_v1::TotemRPDigi>_totemRPRawToDigi_*_*',
+    'keep TotemRPDigi_totemRPRawToDigi_*_*',
     'keep TotemVFATStatusedmDetSetVector_totemRPRawToDigi_*_*',
-    'keep std::vector<io_v1::TotemRPCluster>_totemRPClusterProducer_*_*',
-    'keep std::vector<io_v1::TotemRPRecHit>_totemRPRecHitProducer_*_*',
-    'keep std::vector<io_v1::TotemRPUVPattern>_totemRPUVPatternFinder_*_*',
-    'keep std::vector<io_v1::TotemRPLocalTrack>_totemRPLocalTrackFitter_*_*',
+    'keep TotemRPCluster_totemRPClusterProducer_*_*',
+    'keep TotemRPRecHit_totemRPRecHitProducer_*_*',
+    'keep TotemRPUVPattern_totemRPUVPatternFinder_*_*',
+    'keep TotemRPLocalTrack_totemRPLocalTrackFitter_*_*',
 
     # totem T2
     'keep TotemFEDInfos_totemT2Digis_*_*',
-    'keep std::vector<io_v1::TotemT2Digi>_totemT2Digis_*_*',
+    'keep TotemT2Digi_totemT2Digis_*_*',
     'keep TotemVFATStatusedmDetSetVector_totemT2Digis_*_*',
 
     # timing diamonds
     'keep TotemFEDInfos_ctppsDiamondRawToDigi_*_*',
-    'keep std::vector<io_v1::CTPPSDiamondDigi>_ctppsDiamondRawToDigi_*_*',
+    'keep CTPPSDiamondDigi_ctppsDiamondRawToDigi_*_*',
     'keep TotemVFATStatusedmDetSetVector_ctppsDiamondRawToDigi_*_*',
     'keep CTPPSDiamondRecHits_ctppsDiamondRecHits_*_*',
     'keep CTPPSDiamondLocalTracks_ctppsDiamondLocalTracks_*_*',
@@ -30,14 +30,14 @@ RecoCTPPSAOD = cms.PSet(
     'keep TotemTimingLocalTracks_diamondSampicLocalTracks_*_*',
 
     # TOTEM timing
-    'keep std::vector<io_v1::TotemTimingDigi>_totemTimingRawToDigi_*_*',
+    'keep TotemTimingDigi_totemTimingRawToDigi_*_*',
     'keep TotemTimingRecHits_totemTimingRecHits_*_*',
     'keep TotemTimingLocalTracks_totemTimingLocalTracks_*_*',
 
     # tracking pixels
-    'keep std::vector<io_v1::CTPPSPixelDigi>_ctppsPixelDigis_*_*',
-    'keep std::vector<io_v1::CTPPSPixelDataError>_ctppsPixelDigis_*_*',
-    'keep std::vector<io_v1::CTPPSPixelCluster>_ctppsPixelClusters_*_*',
+    'keep CTPPSPixelDigi_ctppsPixelDigis_*_*',
+    'keep CTPPSPixelDataError_ctppsPixelDigis_*_*',
+    'keep CTPPSPixelCluster_ctppsPixelClusters_*_*',
     'keep CTPPSPixelRecHits_ctppsPixelRecHits_*_*',
     'keep CTPPSPixelLocalTracks_ctppsPixelLocalTracks_*_*',
 
