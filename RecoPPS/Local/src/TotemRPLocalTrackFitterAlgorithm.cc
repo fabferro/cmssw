@@ -61,7 +61,7 @@ TotemRPLocalTrackFitterAlgorithm::RPDetCoordinateAlgebraObjs *TotemRPLocalTrackF
 
 //----------------------------------------------------------------------------------------------------
 
-bool TotemRPLocalTrackFitterAlgorithm::fitTrack(const edm::DetSetVector<TotemRPRecHit> &hits,
+bool TotemRPLocalTrackFitterAlgorithm::fitTrack(const std::vector<TotemRPRecHit> &hits,
                                                 double z_0,
                                                 const CTPPSGeometry &tot_geom,
                                                 TotemRPLocalTrack &fitted_track) {
@@ -76,14 +76,11 @@ bool TotemRPLocalTrackFitterAlgorithm::fitTrack(const edm::DetSetVector<TotemRPR
 
   vector<HitWithAlg> applicable_hits;
 
-  for (auto &ds : hits) {
-    unsigned int detId = ds.detId();
-
-    for (auto &h : ds) {
-      RPDetCoordinateAlgebraObjs *alg = getDetAlgebraData(detId, tot_geom);
-      if (alg->available_)
-        applicable_hits.push_back({detId, &h, alg});
-    }
+  for (const auto &hit : hits) {
+    unsigned int detId = hit.detId().rawId();
+    RPDetCoordinateAlgebraObjs *alg = getDetAlgebraData(detId, tot_geom);
+    if (alg->available_)
+      applicable_hits.push_back({detId, &hit, alg});
   }
 
   if (applicable_hits.size() < 5)
@@ -152,7 +149,7 @@ bool TotemRPLocalTrackFitterAlgorithm::fitTrack(const edm::DetSetVector<TotemRPR
 
     TotemRPLocalTrack::FittedRecHit hit_point(
         *(applicable_hits[i].hit), TVector3(fited_det_xy_point.X(), fited_det_xy_point.Y(), det_z), residual, pull);
-    fitted_track.addHit(applicable_hits[i].detId, hit_point);
+    fitted_track.addHit(hit_point);
   }
 
   fitted_track.setChiSquared(Chi_2);

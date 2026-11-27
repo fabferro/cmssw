@@ -16,10 +16,7 @@
 #include "SimDataFormats/CrossingFrame/interface/MixCollection.h"
 
 #include "DataFormats/CTPPSDigi/interface/TotemRPDigi.h"
-#include "DataFormats/CTPPSDigi/interface/TotemRPDigi.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDetId/interface/TotemRPDetId.h"
-#include "DataFormats/Common/interface/DetSet.h"
 
 //Random Number
 #include "FWCore/AbstractServices/interface/RandomNumberGenerator.h"
@@ -63,8 +60,6 @@ private:
   void beginRun(const edm::Run&, const edm::EventSetup&) override;
   void produce(edm::Event&, const edm::EventSetup&) override;
 
-  edm::DetSet<TotemRPDigi> convertRPStripDetSet(const edm::DetSet<TotemRPDigi>&);
-
   // ----------member data ---------------------------
   std::vector<std::string> RP_hit_containers_;
   typedef std::map<unsigned int, std::vector<PSimHit>> simhit_map;
@@ -94,7 +89,7 @@ private:
 
 RPDigiProducer::RPDigiProducer(const edm::ParameterSet& conf) : conf_(conf) {
   //now do what ever other initialization is needed
-  produces<edm::DetSetVector<TotemRPDigi>>();
+  produces<std::vector<TotemRPDigi>>();
 
   // register data to consume
   tokenCrossingFrameTotemRP = consumes<CrossingFrame<PSimHit>>(edm::InputTag("mix", "g4SimHitsTotemHitsRP", ""));
@@ -171,9 +166,8 @@ void RPDigiProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
   }
 
   // Step B: LOOP on hits in event
-  std::vector<edm::DetSet<TotemRPDigi>> DigiVector;
-  DigiVector.reserve(400);
-  DigiVector.clear();
+  std::vector<TotemRPDigi> digi_output;
+  digi_output.reserve(400);
 
   CTPPSRPAlignmentCorrectionsData const* alignments = nullptr;
   if (auto rec = iSetup.tryToGet<VeryForwardMisalignedGeometryRecord>()) {
@@ -182,7 +176,7 @@ void RPDigiProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
   auto const& geom = iSetup.getData(geomToken);
 
   for (simhit_map_iterator it = simHitMap_.begin(); it != simHitMap_.end(); ++it) {
-    edm::DetSet<TotemRPDigi> digi_collector(it->first);
+    std::vector<TotemRPDigi> detector_digis;
 
     if (theAlgoMap.find(it->first) == theAlgoMap.end()) {
       theAlgoMap[it->first] = std::make_unique<RPDetDigitizer>(conf_, *rndEngine_, it->first, alignments, geom);
@@ -192,21 +186,18 @@ void RPDigiProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
     simromanpot::DigiPrimaryMapType output_digi_links;
 
     (theAlgoMap.find(it->first)->second)
-        ->run(simHitMap_[it->first], input_links, digi_collector.data, output_digi_links);
+        ->run(simHitMap_[it->first], input_links, detector_digis, output_digi_links);
 
-    if (!digi_collector.data.empty()) {
-      DigiVector.push_back(convertRPStripDetSet(digi_collector));
+    for (const auto& digi : detector_digis) {
+      digi_output.emplace_back(digi.stripNumber(), it->first);
     }
   }
 
-  // Step C: create empty output collection
-  std::unique_ptr<edm::DetSetVector<TotemRPDigi>> digi_output(new edm::DetSetVector<TotemRPDigi>(DigiVector));
-
   if (verbosity_) {
-    edm::LogInfo("RPDigiProducer") << "digi_output->size()=" << digi_output->size() << "\n";
+    edm::LogInfo("RPDigiProducer") << "digi_output.size()=" << digi_output.size() << "\n";
   }
   // Step D: write output to file
-  iEvent.put(std::move(digi_output));
+  iEvent.put(std::make_unique<std::vector<TotemRPDigi>>(std::move(digi_output)));
 }
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -216,19 +207,6 @@ void RPDigiProducer::beginRun(const edm::Run& beginrun, const edm::EventSetup& e
     //set analysisMask in deadChannelsManager
     deadChannelsManager = DeadChannelsManager(&es.getData(tokenAnalysisMask));
   }
-}
-
-edm::DetSet<TotemRPDigi> RPDigiProducer::convertRPStripDetSet(const edm::DetSet<TotemRPDigi>& rpstrip_detset) {
-  edm::DetSet<TotemRPDigi> rpdigi_detset(rpstrip_detset.detId());
-  rpdigi_detset.reserve(rpstrip_detset.size());
-
-  for (std::vector<TotemRPDigi>::const_iterator stripIterator = rpstrip_detset.data.begin();
-       stripIterator < rpstrip_detset.data.end();
-       ++stripIterator) {
-    rpdigi_detset.push_back(TotemRPDigi(stripIterator->stripNumber()));
-  }
-
-  return rpdigi_detset;
 }
 
 void RPDigiProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {

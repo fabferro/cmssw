@@ -12,7 +12,6 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPRecHit.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPLocalTrack.h"
 
@@ -34,7 +33,7 @@ public:
   TotemRPLocalTrackFitterAlgorithm(const edm::ParameterSet &conf);
 
   /// performs the track fit, returns true if successful
-  bool fitTrack(const edm::DetSetVector<TotemRPRecHit> &hits,
+  bool fitTrack(const std::vector<TotemRPRecHit> &hits,
                 double z_0,
                 const CTPPSGeometry &tot_geom,
                 TotemRPLocalTrack &fitted_track);

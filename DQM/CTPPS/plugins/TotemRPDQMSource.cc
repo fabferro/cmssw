@@ -17,7 +17,6 @@
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDetId/interface/TotemRPDetId.h"
 #include "DataFormats/CTPPSDigi/interface/TotemRPDigi.h"
 #include "DataFormats/CTPPSDigi/interface/TotemVFATStatus.h"
@@ -46,9 +45,9 @@ protected:
 private:
   unsigned int verbosity;
 
-  edm::EDGetTokenT<edm::DetSetVector<TotemVFATStatus>> tokenStatus;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPDigi>> tokenDigi;
-  edm::EDGetTokenT<edm::DetSetVector<TotemRPCluster>> tokenCluster;
+  edm::EDGetTokenT<std::vector<TotemVFATStatus>> tokenStatus;
+  edm::EDGetTokenT<std::vector<TotemRPDigi>> tokenDigi;
+  edm::EDGetTokenT<std::vector<TotemRPCluster>> tokenCluster;
   edm::EDGetTokenT<std::vector<TotemRPRecHit>> tokenRecHit;
   edm::EDGetTokenT<std::vector<TotemRPUVPattern>> tokenUVPattern;
   edm::EDGetTokenT<std::vector<TotemRPLocalTrack>> tokenLocalTrack;
@@ -182,10 +181,10 @@ TotemRPDQMSource::TotemRPDQMSource(const edm::ParameterSet &ps)
       geometryToken_(esConsumes())
 
 {
-  tokenStatus = consumes<DetSetVector<TotemVFATStatus>>(ps.getUntrackedParameter<edm::InputTag>("tagStatus"));
+  tokenStatus = consumes<std::vector<TotemVFATStatus>>(ps.getUntrackedParameter<edm::InputTag>("tagStatus"));
 
-  tokenDigi = consumes<DetSetVector<TotemRPDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"));
-  tokenCluster = consumes<edm::DetSetVector<TotemRPCluster>>(ps.getUntrackedParameter<edm::InputTag>("tagCluster"));
+  tokenDigi = consumes<std::vector<TotemRPDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"));
+  tokenCluster = consumes<std::vector<TotemRPCluster>>(ps.getUntrackedParameter<edm::InputTag>("tagCluster"));
   tokenRecHit = consumes<std::vector<TotemRPRecHit>>(ps.getUntrackedParameter<edm::InputTag>("tagRecHit"));
   tokenUVPattern = consumes<std::vector<TotemRPUVPattern>>(ps.getUntrackedParameter<edm::InputTag>("tagUVPattern"));
   tokenLocalTrack = consumes<std::vector<TotemRPLocalTrack>>(ps.getUntrackedParameter<edm::InputTag>("tagLocalTrack"));
@@ -227,13 +226,13 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   auto const &geometry = eventSetup.getData(geometryToken_);
 
   // get event data
-  Handle<DetSetVector<TotemVFATStatus>> status;
+  Handle<std::vector<TotemVFATStatus>> status;
   event.getByToken(tokenStatus, status);
 
-  Handle<DetSetVector<TotemRPDigi>> digi;
+  Handle<std::vector<TotemRPDigi>> digi;
   event.getByToken(tokenDigi, digi);
 
-  Handle<DetSetVector<TotemRPCluster>> digCluster;
+  Handle<std::vector<TotemRPCluster>> digCluster;
   event.getByToken(tokenCluster, digCluster);
 
   Handle<std::vector<TotemRPRecHit>> hits;
@@ -272,8 +271,8 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   //------------------------------
   // Status Plots
 
-  for (auto &ds : *status) {
-    TotemRPDetId detId(ds.detId());
+  for (const auto& statusEntry : *status) {
+    TotemRPDetId detId(statusEntry.detId());
     unsigned int plNum = detId.plane();
     CTPPSDetId rpId = detId.rpId();
 
@@ -282,21 +281,19 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
       continue;
     auto &plots = it->second;
 
-    for (auto &s : ds) {
-      if (s.isMissing()) {
-        plots.vfat_problem->Fill(plNum, s.chipPosition());
-        plots.vfat_missing->Fill(plNum, s.chipPosition());
-      }
+    if (statusEntry.isMissing()) {
+      plots.vfat_problem->Fill(plNum, statusEntry.chipPosition());
+      plots.vfat_missing->Fill(plNum, statusEntry.chipPosition());
+    }
 
-      if (s.isECProgressError() || s.isBCProgressError()) {
-        plots.vfat_problem->Fill(plNum, s.chipPosition());
-        plots.vfat_ec_bc_error->Fill(plNum, s.chipPosition());
-      }
+    if (statusEntry.isECProgressError() || statusEntry.isBCProgressError()) {
+      plots.vfat_problem->Fill(plNum, statusEntry.chipPosition());
+      plots.vfat_ec_bc_error->Fill(plNum, statusEntry.chipPosition());
+    }
 
-      if (s.isIDMismatch() || s.isFootprintError() || s.isCRCError()) {
-        plots.vfat_problem->Fill(plNum, s.chipPosition());
-        plots.vfat_corruption->Fill(plNum, s.chipPosition());
-      }
+    if (statusEntry.isIDMismatch() || statusEntry.isFootprintError() || statusEntry.isCRCError()) {
+      plots.vfat_problem->Fill(plNum, statusEntry.chipPosition());
+      plots.vfat_corruption->Fill(plNum, statusEntry.chipPosition());
     }
   }
 
@@ -304,37 +301,39 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   // Plane Plots
 
   // digi profile cumulative
-  for (DetSetVector<TotemRPDigi>::const_iterator it = digi->begin(); it != digi->end(); ++it) {
-    TotemRPDetId detId(it->detId());
+  for (const auto& rpDigi : *digi) {
+    TotemRPDetId detId(rpDigi.detId());
 
     auto plIt = planePlots.find(detId);
     if (plIt == planePlots.end())
       continue;
     auto &plots = plIt->second;
 
-    for (DetSet<TotemRPDigi>::const_iterator dit = it->begin(); dit != it->end(); ++dit)
-      plots.digi_profile_cumulative->Fill(dit->stripNumber());
+    plots.digi_profile_cumulative->Fill(rpDigi.stripNumber());
   }
 
   // cluster plots
-  for (DetSetVector<TotemRPCluster>::const_iterator it = digCluster->begin(); it != digCluster->end(); it++) {
-    TotemRPDetId detId(it->detId());
+  map<unsigned int, unsigned int> clustersPerPlane;
+  for (const auto& cluster : *digCluster)
+    ++clustersPerPlane[cluster.detId().rawId()];
+
+  for (const auto& [rawDetId, count] : clustersPerPlane) {
+    TotemRPDetId detId(rawDetId);
+    auto plIt = planePlots.find(detId);
+    if (plIt != planePlots.end())
+      plIt->second.hit_multiplicity->Fill(count);
+  }
+
+  for (const auto& cluster : *digCluster) {
+    TotemRPDetId detId(cluster.detId());
 
     auto plIt = planePlots.find(detId);
     if (plIt == planePlots.end())
       continue;
     auto &plots = plIt->second;
 
-    // hit multiplicity
-    plots.hit_multiplicity->Fill(it->size());
-
-    for (DetSet<TotemRPCluster>::const_iterator dit = it->begin(); dit != it->end(); ++dit) {
-      // profile cumulative
-      plots.cluster_profile_cumulative->Fill(dit->centerStripPosition());
-
-      // cluster size
-      plots.cluster_size->Fill(dit->numberOfStrips());
-    }
+    plots.cluster_profile_cumulative->Fill(cluster.centerStripPosition());
+    plots.cluster_size->Fill(cluster.numberOfStrips());
   }
 
   // plane efficiency plots
@@ -396,19 +395,11 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
       planes_v[rpId].insert(planeNum);
   }
 
-  for (const auto &ds : *status) {
-    bool activity = false;
-    for (const auto &s : ds) {
-      if (s.isNumberOfClustersSpecified() && s.numberOfClusters() > 0) {
-        activity = true;
-        break;
-      }
-    }
-
-    if (!activity)
+  for (const auto &s : *status) {
+    if (!s.isNumberOfClustersSpecified() || s.numberOfClusters() == 0)
       continue;
 
-    TotemRPDetId detId(ds.detId());
+    TotemRPDetId detId(s.detId());
     unsigned int planeNum = detId.plane();
     CTPPSDetId rpId = detId.rpId();
 
@@ -431,8 +422,8 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
     }
   }
 
-  for (DetSetVector<TotemRPCluster>::const_iterator it = digCluster->begin(); it != digCluster->end(); it++) {
-    TotemRPDetId detId(it->detId());
+  for (const auto& cluster : *digCluster) {
+    TotemRPDetId detId(cluster.detId());
     unsigned int planeNum = detId.plane();
     CTPPSDetId rpId = detId.rpId();
 
@@ -441,8 +432,7 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
       continue;
     auto &plots = plIt->second;
 
-    for (DetSet<TotemRPCluster>::const_iterator dit = it->begin(); dit != it->end(); ++dit)
-      plots.hit_plane_hist->Fill(planeNum, dit->centerStripPosition());
+    plots.hit_plane_hist->Fill(planeNum, cluster.centerStripPosition());
   }
 
   // recognized pattern histograms
@@ -518,17 +508,13 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
 
       // number of planes contributing to (valid) fits
       unsigned int n_pl_in_fit_u = 0, n_pl_in_fit_v = 0;
-      for (auto &hds : ft.hits()) {
-        TotemRPDetId plId(hds.detId());
+      for (const auto &hit : ft.hits()) {
+        TotemRPDetId plId(hit.detId());
         bool uProj = plId.isStripsCoordinateUDirection();
-
-        for (auto &h : hds) {
-          h.position();  // just to keep compiler silent
-          if (uProj)
-            n_pl_in_fit_u++;
-          else
-            n_pl_in_fit_v++;
-        }
+        if (uProj)
+          n_pl_in_fit_u++;
+        else
+          n_pl_in_fit_v++;
       }
 
       plots.h_planes_fit_u->Fill(n_pl_in_fit_u);
@@ -562,19 +548,15 @@ void TotemRPDQMSource::analyze(edm::Event const &event, edm::EventSetup const &e
   // restore trigger-sector map from digis
   map<unsigned int, map<unsigned int, map<unsigned int, unsigned int>>>
       triggerSectorMap;  // [rpId, U/V flag, sector] --> number of planes
-  for (const auto &dp : *digi) {
-    TotemRPDetId plId(dp.detId());
+  set<pair<unsigned int, unsigned int>> planeSectors;
+  for (const auto &rpDigi : *digi)
+    planeSectors.emplace(rpDigi.detId(), rpDigi.stripNumber() / 32);
+
+  for (const auto &[detId, sector] : planeSectors) {
+    TotemRPDetId plId(detId);
     CTPPSDetId rpId = plId.rpId();
     unsigned int uvFlag = (plId.isStripsCoordinateUDirection()) ? 0 : 1;
-
-    set<unsigned int> sectors;
-    for (const auto &d : dp) {
-      unsigned int sector = d.stripNumber() / 32;
-      sectors.insert(sector);
-    }
-
-    for (const auto &sector : sectors)
-      triggerSectorMap[rpId][uvFlag][sector]++;
+    triggerSectorMap[rpId][uvFlag][sector]++;
   }
 
   for (auto &rpp : triggerSectorMap) {

@@ -10,6 +10,8 @@
 #ifndef DataFormats_CTPPSDigi_TotemRPDigi
 #define DataFormats_CTPPSDigi_TotemRPDigi
 
+#include <cstdint>
+
 /**
  * Digi structure for TOTEM RP silicon strip sensors.
 **/

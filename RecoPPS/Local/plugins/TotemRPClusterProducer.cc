@@ -17,7 +17,6 @@
 #include <map>
 #include <vector>
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/CTPPSDigi/interface/TotemRPDigi.h"
 

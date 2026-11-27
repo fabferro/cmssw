@@ -8,7 +8,7 @@ RecoCTPPSAOD = cms.PSet(
     # tracking strip
     'keep TotemFEDInfos_totemRPRawToDigi_*_*',
     'keep TotemRPDigi_totemRPRawToDigi_*_*',
-    'keep TotemVFATStatusedmDetSetVector_totemRPRawToDigi_*_*',
+    'keep TotemVFATStatus_totemRPRawToDigi_*_*',
     'keep TotemRPCluster_totemRPClusterProducer_*_*',
     'keep TotemRPRecHit_totemRPRecHitProducer_*_*',
     'keep TotemRPUVPattern_totemRPUVPatternFinder_*_*',
@@ -17,12 +17,12 @@ RecoCTPPSAOD = cms.PSet(
     # totem T2
     'keep TotemFEDInfos_totemT2Digis_*_*',
     'keep TotemT2Digi_totemT2Digis_*_*',
-    'keep TotemVFATStatusedmDetSetVector_totemT2Digis_*_*',
+    'keep TotemVFATStatus_totemT2Digis_*_*',
 
     # timing diamonds
     'keep TotemFEDInfos_ctppsDiamondRawToDigi_*_*',
     'keep CTPPSDiamondDigi_ctppsDiamondRawToDigi_*_*',
-    'keep TotemVFATStatusedmDetSetVector_ctppsDiamondRawToDigi_*_*',
+    'keep TotemVFATStatus_ctppsDiamondRawToDigi_*_*',
     'keep CTPPSDiamondRecHits_ctppsDiamondRecHits_*_*',
     'keep CTPPSDiamondLocalTracks_ctppsDiamondLocalTracks_*_*',
 

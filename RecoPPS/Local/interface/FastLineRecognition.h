@@ -9,8 +9,6 @@
 #ifndef RecoPPS_Local_FastLineRecognition
 #define RecoPPS_Local_FastLineRecognition
 
-#include "DataFormats/Common/interface/DetSet.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 
 #include "Geometry/VeryForwardGeometryBuilder/interface/CTPPSGeometry.h"
 #include "DataFormats/CTPPSDetId/interface/TotemRPDetId.h"
@@ -32,10 +30,10 @@ public:
     geometryMap.clear();
   }
 
-  void getPatterns(const edm::DetSetVector<TotemRPRecHit> &input,
+  void getPatterns(const std::vector<TotemRPRecHit> &input,
                    double _z0,
                    double threshold,
-                   edm::DetSet<TotemRPUVPattern> &patterns);
+                   std::vector<TotemRPUVPattern> &patterns);
 
 private:
   /// the uncertainty of 1-hit cluster, in mm

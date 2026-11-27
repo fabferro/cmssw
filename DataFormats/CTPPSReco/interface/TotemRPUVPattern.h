@@ -11,10 +11,10 @@
 
 #include <cstdint>
 
-#include "DataFormats/Common/interface/DetSet.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDetId/interface/CTPPSDetId.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPRecHit.h"
+
+#include <vector>
 
 /**
  *\brief A linear pattern in U or V projection.
@@ -48,9 +48,9 @@ namespace io_v1 {
     bool fittable() const { return fittable_; }
     void setFittable(bool fittable) { fittable_ = fittable; }
 
-    void addHit(edm::det_id_type detId, const TotemRPRecHit &hit) { hits_.find_or_insert(detId).push_back(hit); }
+    void addHit(const TotemRPRecHit &hit) { hits_.push_back(hit); }
 
-    const edm::DetSetVector<TotemRPRecHit> &hits() const { return hits_; }
+    const std::vector<TotemRPRecHit> &hits() const { return hits_; }
 
     friend bool operator<(const TotemRPUVPattern &l, const TotemRPUVPattern &r);
 
@@ -62,7 +62,7 @@ namespace io_v1 {
     double w_;                   ///< weight
     bool fittable_;              ///< whether this pattern is worth including in track fits
 
-    edm::DetSetVector<TotemRPRecHit> hits_;  ///< hits associated with the pattern
+    std::vector<TotemRPRecHit> hits_;  ///< hits associated with the pattern
   };
 
   //----------------------------------------------------------------------------------------------------

@@ -29,6 +29,9 @@ namespace io_v1 {
     inline uint8_t chipPosition() const { return chipPosition_; }
     inline void setChipPosition(uint8_t cp) { chipPosition_ = cp; }
 
+    inline uint32_t detId() const { return detId_; }
+    inline void setDetId(uint32_t detId) { detId_ = detId; }
+
     /// VFAT is present in mapping but no data is present int raw event
     inline bool isMissing() const { return status[0]; }
     inline void setMissing(bool val = true) { status[0] = val; }
@@ -83,6 +86,8 @@ namespace io_v1 {
     inline void setEC(const uint8_t ec) { eventCounter = ec; }
 
   private:
+    uint32_t detId_{0};
+
     /// describes placement of the VFAT within the detector
     uint8_t chipPosition_;
 

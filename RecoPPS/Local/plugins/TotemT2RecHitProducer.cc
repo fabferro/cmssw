@@ -16,7 +16,6 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 
-#include "DataFormats/Common/interface/DetSetVectorNew.h"
 
 #include "DataFormats/CTPPSDetId/interface/TotemT2DetId.h"
 #include "DataFormats/TotemReco/interface/TotemT2Digi.h"
@@ -49,11 +48,11 @@ TotemT2RecHitProducer::TotemT2RecHitProducer(const edm::ParameterSet& iConfig)
       geometryToken_(esConsumes<TotemGeometry, TotemGeometryRcd>()),
       applyCalib_(iConfig.getParameter<bool>("applyCalibration")),
       algo_(iConfig) {
-  produces<edmNew::DetSetVector<TotemT2RecHit> >();
+  produces<std::vector<TotemT2RecHit>>();
 }
 
 void TotemT2RecHitProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  auto pOut = std::make_unique<edmNew::DetSetVector<TotemT2RecHit> >();
+  auto pOut = std::make_unique<std::vector<TotemT2RecHit>>();
 
   // get the digi collection
   const auto& digis = iEvent.get(digiToken_);

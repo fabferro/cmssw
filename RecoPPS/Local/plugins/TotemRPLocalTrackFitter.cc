@@ -17,7 +17,6 @@
 #include "FWCore/Framework/interface/ESWatcher.h"
 #include "FWCore/Utilities/interface/ESGetToken.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPRecHit.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPUVPattern.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPLocalTrack.h"
@@ -146,18 +145,10 @@ void TotemRPLocalTrackFitter::produce(edm::Event &e, const edm::EventSetup &setu
       continue;
 
     // combine U and V hits
-    DetSetVector<TotemRPRecHit> hits;
-    for (auto &ids : rpv[idx_U].hits()) {
-      auto &ods = hits.find_or_insert(ids.detId());
-      for (auto &h : ids)
-        ods.push_back(h);
-    }
+    std::vector<TotemRPRecHit> hits;
+    hits.insert(hits.end(), rpv[idx_U].hits().begin(), rpv[idx_U].hits().end());
 
-    for (auto &ids : rpv[idx_V].hits()) {
-      auto &ods = hits.find_or_insert(ids.detId());
-      for (auto &h : ids)
-        ods.push_back(h);
-    }
+    hits.insert(hits.end(), rpv[idx_V].hits().begin(), rpv[idx_V].hits().end());
 
     // run fit
     double z0 = geometry->rpTranslation(rpId).z();
@@ -169,8 +160,7 @@ void TotemRPLocalTrackFitter::produce(edm::Event &e, const edm::EventSetup &setu
 
     if (verbosity_ > 5) {
       unsigned int n_hits = 0;
-      for (auto &hds : track.hits())
-        n_hits += hds.size();
+      n_hits = track.hits().size();
 
       LogVerbatim("TotemRPLocalTrackFitter")
           << "    track in RP " << rpId << ": valid = " << track.isValid() << ", hits = " << n_hits;

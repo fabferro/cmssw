@@ -16,7 +16,8 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "DataFormats/Common/interface/Handle.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
+#include <vector>
+
 #include <FWCore/Framework/interface/Event.h>
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
@@ -24,6 +25,7 @@
 #include "CondFormats/DataRecord/interface/PPSPixelTopologyRcd.h"
 
 #include <iostream>
+#include <set>
 #include <string>
 
 #include "TH2D.h"
@@ -65,7 +67,7 @@ private:
 
   int verbosity_;
   edm::EDGetTokenT<edm::PSimHitContainer> psim_token;
-  edm::EDGetTokenT<edm::DetSetVector<CTPPSPixelDigi>> pixel_token;
+  edm::EDGetTokenT<std::vector<CTPPSPixelDigi>> pixel_token;
   edm::ESGetToken<PPSPixelTopology, PPSPixelTopologyRcd> pixelTopologyToken_;
 
   unsigned int found_corresponding_digi_count_;
@@ -96,7 +98,7 @@ PPSPixelDigiAnalyzer::PPSPixelDigiAnalyzer(const ParameterSet &pset)
   hAllHits = file->make<TH2D>("AllHits", "All Hits", 10, 1, 1.1, 10, -8.55, -8.4);
 
   psim_token = consumes<PSimHitContainer>(edm::InputTag("g4SimHits", "CTPPSPixelHits"));
-  pixel_token = consumes<edm::DetSetVector<CTPPSPixelDigi>>(edm::InputTag(label_, ""));  //label=RPixDetDigitizer???
+  pixel_token = consumes<std::vector<CTPPSPixelDigi>>(edm::InputTag(label_, ""));  //label=RPixDetDigitizer???
   pixelTopologyToken_ = esConsumes<PPSPixelTopology, PPSPixelTopologyRcd>();
 }
 
@@ -122,9 +124,8 @@ void PPSPixelDigiAnalyzer::analyze(const Event &event, const EventSetup &eventSe
   Handle<PSimHitContainer> simHits;
   event.getByToken(psim_token, simHits);
 
-  edm::Handle<edm::DetSetVector<CTPPSPixelDigi>> CTPPSPixelDigis;
+  edm::Handle<std::vector<CTPPSPixelDigi>> CTPPSPixelDigis;
   event.getByToken(pixel_token, CTPPSPixelDigis);
-
   edm::ESHandle<PPSPixelTopology> thePixelTopology = eventSetup.getHandle(pixelTopologyToken_);
 
   if (verbosity_ > 0)
@@ -199,88 +200,68 @@ void PPSPixelDigiAnalyzer::analyze(const Event &event, const EventSetup &eventSe
   if (verbosity_ > 0)
     edm::LogInfo("PPSPixelDigiAnalyzer") << "\n=================== RPDA Starting Digi access"
                                          << "  ===================";
-  int numberOfDetUnits = 0;
+  std::set<uint32_t> detector_ids;
+  bool found_corresponding_digi = false;
+  unsigned int corresponding_digi_cluster_size = 0;
 
-  // Iterate on detector units
-  edm::DetSetVector<CTPPSPixelDigi>::const_iterator DSViter = CTPPSPixelDigis->begin();
-
-  for (; DSViter != CTPPSPixelDigis->end(); DSViter++) {
-    ++numberOfDetUnits;
-
-    DetId detIdObject(DSViter->detId());
-    if (verbosity_ > 1)
-      edm::LogInfo("PPSPixelDigiAnalyzer") << "DetId: " << DSViter->detId();
-
-    bool found_corresponding_digi = false;
-    unsigned int corresponding_digi_cluster_size = 0;
-
-    // looping over digis in a unit id
-    edm::DetSet<CTPPSPixelDigi>::const_iterator begin = (*DSViter).begin();
-    edm::DetSet<CTPPSPixelDigi>::const_iterator end = (*DSViter).end();
+  for (const auto& digi : *CTPPSPixelDigis) {
+    const bool first_digi_for_detector = detector_ids.insert(digi.detId()).second;
+    if (first_digi_for_detector && verbosity_ > 1)
+      edm::LogInfo("PPSPixelDigiAnalyzer") << "DetId: " << digi.detId();
 
     if (verbosity_ > 2) {
-      edm::LogInfo("PPSPixelDigiAnalyzer") << "FF  " << DSViter->detId();
-      for (edm::DetSet<CTPPSPixelDigi>::const_iterator di = begin; di != end; di++) {
-        edm::LogInfo("PPSPixelDigiAnalyzer") << "           Digi row  " << di->row() << ", col " << di->column();
-
-        // reconvert the digi to local coordinates
-        double lx;
-        double ly;
-        double ux;
-        double uy;
-        unsigned int rr = di->row();
-        unsigned int cc = di->column();
-        thePixelTopology->pixelRange(rr, cc, lx, ux, ly, uy);
-
-        edm::LogInfo("PPSPixelDigiAnalyzer")
-            << " pixel boundaries x low up, y low up " << lx << " " << ux << " " << ly << " " << uy;
-      }
-    }
-    if (DSViter->detId() == SELECTED_UNITID && found_hit_inside_selected_pixel) {
-      for (edm::DetSet<CTPPSPixelDigi>::const_iterator di = begin; di != end; di++) {
-        if (verbosity_ > 1)
-          edm::LogInfo("PPSPixelDigiAnalyzer") << "           Digi row  " << di->row() << ", col " << di->column();
-
-        if (di->row() == SELECTED_PIXEL_ROW && di->column() == SELECTED_PIXEL_COLUMN) {
-          found_corresponding_digi_count_++;
-          found_corresponding_digi = true;
-          corresponding_digi_cluster_size = 1;
-        }
-      }
-      //if coresponding digi found, re-loop to look for adjacent pixels
-      if (found_corresponding_digi) {
-        for (edm::DetSet<CTPPSPixelDigi>::const_iterator di = begin; di != end; di++) {
-          if (verbosity_ > 1)
-            edm::LogInfo("PPSPixelDigiAnalyzer") << "           Digi row  " << di->row() << ", col " << di->column();
-
-          if ((di->row() == SELECTED_PIXEL_ROW + 1 && di->column() == SELECTED_PIXEL_COLUMN) ||
-              (di->row() == SELECTED_PIXEL_ROW - 1 && di->column() == SELECTED_PIXEL_COLUMN) ||
-              (di->row() == SELECTED_PIXEL_ROW && di->column() == SELECTED_PIXEL_COLUMN + 1) ||
-              (di->row() == SELECTED_PIXEL_ROW && di->column() == SELECTED_PIXEL_COLUMN - 1)) {
-            corresponding_digi_cluster_size++;
-            edm::LogInfo("PPSPixelDigiAnalyzer") << "           Digi row  " << di->row() << ", col " << di->column();
-          }
-        }
-      }
-    }
-    if (corresponding_digi_cluster_size > 0) {
+      edm::LogInfo("PPSPixelDigiAnalyzer") << "           Digi row  " << digi.row() << ", col " << digi.column();
+      double lx, ly, ux, uy;
+      thePixelTopology->pixelRange(digi.row(), digi.column(), lx, ux, ly, uy);
       edm::LogInfo("PPSPixelDigiAnalyzer")
-          << "corresponding_digi_cluster_size in the event: " << corresponding_digi_cluster_size;
-      hOneHitperEvent->Fill(myY, myX);
-      hOneHitperEventCenter->Fill(myY - CENTERY, myX - CENTERX);
-      if (corresponding_digi_cluster_size < 3) {
-        cumulative_cluster_size_[corresponding_digi_cluster_size - 1]++;
-        if (corresponding_digi_cluster_size > 1) {
-          hOneHitperEvent2->Fill(myY, myX);
-          hOneHitperEvent2Center->Fill(myY - CENTERY, myX - CENTERX);
-        }
-      } else {
-        cumulative_cluster_size_[2]++;
-        hOneHitperEvent2->Fill(myY, myX);
-        hOneHitperEvent2Center->Fill(myY - CENTERY, myX - CENTERX);
+          << " pixel boundaries x low up, y low up " << lx << " " << ux << " " << ly << " " << uy;
+    }
+
+    if (digi.detId() == SELECTED_UNITID && found_hit_inside_selected_pixel && digi.row() == SELECTED_PIXEL_ROW &&
+        digi.column() == SELECTED_PIXEL_COLUMN) {
+      if (verbosity_ > 1)
+        edm::LogInfo("PPSPixelDigiAnalyzer") << "           Digi row  " << digi.row() << ", col " << digi.column();
+      found_corresponding_digi_count_++;
+      found_corresponding_digi = true;
+      corresponding_digi_cluster_size = 1;
+    }
+  }
+
+  if (found_corresponding_digi) {
+    for (const auto& digi : *CTPPSPixelDigis) {
+      if (digi.detId() != SELECTED_UNITID)
+        continue;
+
+      if ((digi.row() == SELECTED_PIXEL_ROW + 1 && digi.column() == SELECTED_PIXEL_COLUMN) ||
+          (digi.row() == SELECTED_PIXEL_ROW - 1 && digi.column() == SELECTED_PIXEL_COLUMN) ||
+          (digi.row() == SELECTED_PIXEL_ROW && digi.column() == SELECTED_PIXEL_COLUMN + 1) ||
+          (digi.row() == SELECTED_PIXEL_ROW && digi.column() == SELECTED_PIXEL_COLUMN - 1)) {
+        corresponding_digi_cluster_size++;
+        if (verbosity_ > 1)
+          edm::LogInfo("PPSPixelDigiAnalyzer") << "           Digi row  " << digi.row() << ", col " << digi.column();
       }
     }
   }
+
+  if (corresponding_digi_cluster_size > 0) {
+    edm::LogInfo("PPSPixelDigiAnalyzer")
+        << "corresponding_digi_cluster_size in the event: " << corresponding_digi_cluster_size;
+    hOneHitperEvent->Fill(myY, myX);
+    hOneHitperEventCenter->Fill(myY - CENTERY, myX - CENTERX);
+    if (corresponding_digi_cluster_size < 3) {
+      cumulative_cluster_size_[corresponding_digi_cluster_size - 1]++;
+      if (corresponding_digi_cluster_size > 1) {
+        hOneHitperEvent2->Fill(myY, myX);
+        hOneHitperEvent2Center->Fill(myY - CENTERY, myX - CENTERX);
+      }
+    } else {
+      cumulative_cluster_size_[2]++;
+      hOneHitperEvent2->Fill(myY, myX);
+      hOneHitperEvent2Center->Fill(myY - CENTERY, myX - CENTERX);
+    }
+  }
+
+  const int numberOfDetUnits = detector_ids.size();
 
   if (verbosity_ > 1)
     edm::LogInfo("PPSPixelDigiAnalyzer") << "numberOfDetUnits in the event: " << numberOfDetUnits;

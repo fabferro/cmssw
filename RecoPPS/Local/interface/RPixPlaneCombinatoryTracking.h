@@ -11,7 +11,6 @@
 #define RecoPPS_Local_RPixPlaneCombinatoryTracking_H
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "DataFormats/CTPPSReco/interface/CTPPSPixelLocalTrack.h"

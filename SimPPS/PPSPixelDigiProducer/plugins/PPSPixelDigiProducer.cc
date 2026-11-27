@@ -42,7 +42,6 @@
 #include "SimPPS/PPSPixelDigiProducer/interface/RPixDetDigitizer.h"
 #include "SimDataFormats/CrossingFrame/interface/MixCollection.h"
 
-#include "DataFormats/Common/interface/DetSet.h"
 
 // DB
 #include "CondFormats/DataRecord/interface/CTPPSPixelDAQMappingRcd.h"
@@ -64,7 +63,6 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 
 //Random Number
 #include "FWCore/AbstractServices/interface/RandomNumberGenerator.h"
@@ -104,7 +102,7 @@ private:
 
 CTPPSPixelDigiProducer::CTPPSPixelDigiProducer(const edm::ParameterSet& conf)
     : conf_(conf), gainCalibESToken_(esConsumes()), thePixelTopologyToken_(esConsumes()) {
-  produces<edm::DetSetVector<CTPPSPixelDigi>>();
+  produces<std::vector<CTPPSPixelDigi>>();
 
   // register data to consume
   tokenCrossingFramePPSPixel = consumes<CrossingFrame<PSimHit>>(edm::InputTag("mix", "g4SimHitsCTPPSPixelHits"));
@@ -217,12 +215,11 @@ void CTPPSPixelDigiProducer::produce(edm::Event& iEvent, const edm::EventSetup& 
   }
 
   // Step B: LOOP on hits in event
-  std::vector<edm::DetSet<CTPPSPixelDigi>> theDigiVector;
-  theDigiVector.reserve(400);
-  theDigiVector.clear();
+  std::vector<CTPPSPixelDigi> digi_output;
+  digi_output.reserve(400);
 
   for (simhit_map_iterator it = SimHitMap.begin(); it != SimHitMap.end(); ++it) {
-    edm::DetSet<CTPPSPixelDigi> digi_collector(it->first);
+    std::vector<CTPPSPixelDigi> detector_digis;
 
     if (theAlgoMap.find(it->first) == theAlgoMap.end()) {
       theAlgoMap[it->first] = std::make_unique<RPixDetDigitizer>(
@@ -233,20 +230,18 @@ void CTPPSPixelDigiProducer::produce(edm::Event& iEvent, const edm::EventSetup& 
     std::vector<std::vector<std::pair<int, double>>> output_digi_links;  // links to simhits
 
     theAlgoMap.at(it->first)->run(
-        SimHitMap[it->first], input_links, digi_collector.data, output_digi_links, &gainCalibration, &thePixelTopology);
+        SimHitMap[it->first], input_links, detector_digis, output_digi_links, &gainCalibration, &thePixelTopology);
 
-    if (!digi_collector.data.empty()) {
-      theDigiVector.push_back(digi_collector);
+    for (const auto& digi : detector_digis) {
+      digi_output.emplace_back(digi.row(), digi.column(), digi.adc(), it->first);
     }
   }
 
-  std::unique_ptr<edm::DetSetVector<CTPPSPixelDigi>> digi_output(new edm::DetSetVector<CTPPSPixelDigi>(theDigiVector));
-
   if (verbosity_) {
-    edm::LogInfo("PPS") << "PixelDigiProducer digi_output->size()=" << digi_output->size();
+    edm::LogInfo("PPS") << "PixelDigiProducer digi_output.size()=" << digi_output.size();
   }
 
-  iEvent.put(std::move(digi_output));
+  iEvent.put(std::make_unique<std::vector<CTPPSPixelDigi>>(std::move(digi_output)));
 }
 
 DEFINE_FWK_MODULE(CTPPSPixelDigiProducer);

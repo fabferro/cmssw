@@ -9,12 +9,17 @@
 #ifndef DataFormats_TotemReco_TotemT2RecHit_h
 #define DataFormats_TotemReco_TotemT2RecHit_h
 
+#include <cstdint>
+
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 
 class TotemT2RecHit {
 public:
   TotemT2RecHit() = default;
   explicit TotemT2RecHit(const GlobalPoint&, float, float, float);
+
+  uint32_t detId() const { return detId_; }
+  void setDetId(uint32_t detId) { detId_ = detId; }
 
   const GlobalPoint centre() const { return centre_; }
   void setTime(float time) { time_ = time; }
@@ -25,6 +30,8 @@ public:
   float toT() const { return tot_; }
 
 private:
+  uint32_t detId_{0};
+
   /// Tile centre position
   GlobalPoint centre_;
   /// Leading edge time

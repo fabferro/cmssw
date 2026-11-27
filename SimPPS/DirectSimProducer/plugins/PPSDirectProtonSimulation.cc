@@ -21,7 +21,6 @@
 #include "DataFormats/CTPPSDetId/interface/CTPPSPixelDetId.h"
 #include "DataFormats/CTPPSDetId/interface/CTPPSDiamondDetId.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPRecHit.h"
 #include "DataFormats/CTPPSReco/interface/CTPPSDiamondRecHit.h"
 #include "DataFormats/CTPPSReco/interface/CTPPSPixelRecHit.h"
@@ -84,13 +83,13 @@ private:
 
                      std::vector<CTPPSLocalTrackLite> &out_tracks,
 
-                     edm::DetSetVector<TotemRPRecHit> &out_strip_hits,
-                     edm::DetSetVector<CTPPSPixelRecHit> &out_pixel_hits,
-                     edm::DetSetVector<CTPPSDiamondRecHit> &out_diamond_hits,
+                     std::vector<TotemRPRecHit> &out_strip_hits,
+                     std::vector<CTPPSPixelRecHit> &out_pixel_hits,
+                     std::vector<CTPPSDiamondRecHit> &out_diamond_hits,
 
-                     std::map<int, edm::DetSetVector<TotemRPRecHit>> &out_strip_hits_per_particle,
-                     std::map<int, edm::DetSetVector<CTPPSPixelRecHit>> &out_pixel_hits_per_particle,
-                     std::map<int, edm::DetSetVector<CTPPSDiamondRecHit>> &out_diamond_hits_per_particle) const;
+                     std::map<int, std::vector<TotemRPRecHit>> &out_strip_hits_per_particle,
+                     std::map<int, std::vector<CTPPSPixelRecHit>> &out_pixel_hits_per_particle,
+                     std::map<int, std::vector<CTPPSDiamondRecHit>> &out_diamond_hits_per_particle) const;
 
   // ------------ config file parameters ------------
 
@@ -184,13 +183,13 @@ PPSDirectProtonSimulation::PPSDirectProtonSimulation(const edm::ParameterSet &iC
     produces<std::vector<CTPPSLocalTrackLite>>();
 
   if (produceRecHits_) {
-    produces<edm::DetSetVector<TotemRPRecHit>>();
-    produces<edm::DetSetVector<CTPPSDiamondRecHit>>();
-    produces<edm::DetSetVector<CTPPSPixelRecHit>>();
+    produces<std::vector<TotemRPRecHit>>();
+    produces<std::vector<CTPPSDiamondRecHit>>();
+    produces<std::vector<CTPPSPixelRecHit>>();
 
-    produces<std::map<int, edm::DetSetVector<TotemRPRecHit>>>();
-    produces<std::map<int, edm::DetSetVector<CTPPSDiamondRecHit>>>();
-    produces<std::map<int, edm::DetSetVector<CTPPSPixelRecHit>>>();
+    produces<std::map<int, std::vector<TotemRPRecHit>>>();
+    produces<std::map<int, std::vector<CTPPSDiamondRecHit>>>();
+    produces<std::map<int, std::vector<CTPPSPixelRecHit>>>();
   }
 
   // check user input
@@ -274,13 +273,13 @@ void PPSDirectProtonSimulation::produce(edm::Event &iEvent, const edm::EventSetu
   }
 
   // prepare outputs
-  std::unique_ptr<edm::DetSetVector<TotemRPRecHit>> pStripRecHits(new edm::DetSetVector<TotemRPRecHit>());
-  std::unique_ptr<edm::DetSetVector<CTPPSDiamondRecHit>> pDiamondRecHits(new edm::DetSetVector<CTPPSDiamondRecHit>());
-  std::unique_ptr<edm::DetSetVector<CTPPSPixelRecHit>> pPixelRecHits(new edm::DetSetVector<CTPPSPixelRecHit>());
+  auto pStripRecHits = std::make_unique<std::vector<TotemRPRecHit>>();
+  auto pDiamondRecHits = std::make_unique<std::vector<CTPPSDiamondRecHit>>();
+  auto pPixelRecHits = std::make_unique<std::vector<CTPPSPixelRecHit>>();
 
-  auto pStripRecHitsPerParticle = std::make_unique<std::map<int, edm::DetSetVector<TotemRPRecHit>>>();
-  auto pDiamondRecHitsPerParticle = std::make_unique<std::map<int, edm::DetSetVector<CTPPSDiamondRecHit>>>();
-  auto pPixelRecHitsPerParticle = std::make_unique<std::map<int, edm::DetSetVector<CTPPSPixelRecHit>>>();
+  auto pStripRecHitsPerParticle = std::make_unique<std::map<int, std::vector<TotemRPRecHit>>>();
+  auto pDiamondRecHitsPerParticle = std::make_unique<std::map<int, std::vector<CTPPSDiamondRecHit>>>();
+  auto pPixelRecHitsPerParticle = std::make_unique<std::map<int, std::vector<CTPPSPixelRecHit>>>();
 
   std::unique_ptr<std::vector<CTPPSLocalTrackLite>> pTracks(new std::vector<CTPPSLocalTrackLite>());
 
@@ -348,12 +347,12 @@ void PPSDirectProtonSimulation::processProton(
     const LHCInterpolatedOpticalFunctionsSetCollection &opticalFunctions,
     CLHEP::HepRandomEngine *rndEngine,
     std::vector<CTPPSLocalTrackLite> &out_tracks,
-    edm::DetSetVector<TotemRPRecHit> &out_strip_hits,
-    edm::DetSetVector<CTPPSPixelRecHit> &out_pixel_hits,
-    edm::DetSetVector<CTPPSDiamondRecHit> &out_diamond_hits,
-    std::map<int, edm::DetSetVector<TotemRPRecHit>> &out_strip_hits_per_particle,
-    std::map<int, edm::DetSetVector<CTPPSPixelRecHit>> &out_pixel_hits_per_particle,
-    std::map<int, edm::DetSetVector<CTPPSDiamondRecHit>> &out_diamond_hits_per_particle) const {
+    std::vector<TotemRPRecHit> &out_strip_hits,
+    std::vector<CTPPSPixelRecHit> &out_pixel_hits,
+    std::vector<CTPPSDiamondRecHit> &out_diamond_hits,
+    std::map<int, std::vector<TotemRPRecHit>> &out_strip_hits_per_particle,
+    std::map<int, std::vector<CTPPSPixelRecHit>> &out_pixel_hits_per_particle,
+    std::map<int, std::vector<CTPPSDiamondRecHit>> &out_diamond_hits_per_particle) const {
   /// xi is positive for diffractive protons, thus proton momentum p = (1-xi) * p_nom
   /// horizontal component of proton momentum: p_x = th_x * (1-xi) * p_nom
 
@@ -590,12 +589,10 @@ void PPSDirectProtonSimulation::processProton(
         if (verbosity_ > 5)
           ssLog << " | m=" << v << ", sigma=" << sigma << std::endl;
 
-        edm::DetSet<TotemRPRecHit> &hits = out_strip_hits.find_or_insert(detId);
-        hits.emplace_back(v, sigma);
-
-        edm::DetSet<TotemRPRecHit> &hits_per_particle =
-            out_strip_hits_per_particle[in_trk->barcode()].find_or_insert(detId);
-        hits_per_particle.emplace_back(v, sigma);
+        TotemRPRecHit hit(v, sigma);
+        hit.setDetId(TotemRPDetId(detId.rawId()));
+        out_strip_hits.push_back(hit);
+        out_strip_hits_per_particle[in_trk->barcode()].push_back(hit);
       }
 
       // diamonds
@@ -637,13 +634,10 @@ void PPSDirectProtonSimulation::processProton(
                               time_slice,
                               HPTDCErrorFlags(),
                               multiHit);
+                    rc.setDetId(diamondDetId);
 
-        edm::DetSet<CTPPSDiamondRecHit> &hits = out_diamond_hits.find_or_insert(detId);
-        hits.push_back(rc);
-
-        edm::DetSet<CTPPSDiamondRecHit> &hits_per_particle =
-            out_diamond_hits_per_particle[in_trk->barcode()].find_or_insert(detId);
-        hits_per_particle.push_back(rc);
+                    out_diamond_hits.push_back(rc);
+                    out_diamond_hits_per_particle[in_trk->barcode()].push_back(rc);
       }
 
       // pixels
@@ -672,12 +666,10 @@ void PPSDirectProtonSimulation::processProton(
         const LocalPoint lp(h_loc.x(), h_loc.y(), h_loc.z());
         const LocalError le(sigmaHor, 0., sigmaVer);
 
-        edm::DetSet<CTPPSPixelRecHit> &hits = out_pixel_hits.find_or_insert(detId);
-        hits.emplace_back(lp, le);
-
-        edm::DetSet<CTPPSPixelRecHit> &hits_per_particle =
-            out_pixel_hits_per_particle[in_trk->barcode()].find_or_insert(detId);
-        hits_per_particle.emplace_back(lp, le);
+        CTPPSPixelRecHit hit(lp, le);
+        hit.setDetId(CTPPSPixelDetId(detId.rawId()));
+        out_pixel_hits.push_back(hit);
+        out_pixel_hits_per_particle[in_trk->barcode()].push_back(hit);
       }
     }
   }

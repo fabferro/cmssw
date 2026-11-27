@@ -10,7 +10,6 @@
 
 #include "DataFormats/CTPPSDigi/interface/CTPPSPixelDigi.h"
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "DataFormats/FEDRawData/interface/FEDRawData.h"
 #include "DataFormats/FEDRawData/interface/FEDNumbering.h"

@@ -18,7 +18,6 @@
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 
-#include "DataFormats/Common/interface/DetSetVectorNew.h"
 
 #include "DataFormats/CTPPSDetId/interface/TotemT2DetId.h"
 #include "DataFormats/TotemReco/interface/TotemT2Digi.h"
@@ -51,7 +50,7 @@ private:
   void fillToT(const TotemT2Digi&, const TotemT2DetId&);
   void fillFlags(const TotemT2Digi&, const TotemT2DetId&);
 
-  const edm::EDGetTokenT<edmNew::DetSetVector<TotemT2Digi>> digiToken_;
+  const edm::EDGetTokenT<std::vector<TotemT2Digi>> digiToken_;
 
   std::unique_ptr<TotemT2Segmentation> segm_;
 
@@ -211,7 +210,7 @@ TotemT2DQMSource::ChannelPlots::ChannelPlots(DQMStore::IBooker& ibooker, unsigne
 }
 
 TotemT2DQMSource::TotemT2DQMSource(const edm::ParameterSet& iConfig)
-    : digiToken_(consumes<edmNew::DetSetVector<TotemT2Digi>>(iConfig.getParameter<edm::InputTag>("digisTag"))),
+    : digiToken_(consumes<std::vector<TotemT2Digi>>(iConfig.getParameter<edm::InputTag>("digisTag"))),
       nbinsx_(iConfig.getParameter<unsigned int>("nbinsx")),
       nbinsy_(iConfig.getParameter<unsigned int>("nbinsy")),
       windowsNum_(iConfig.getParameter<unsigned int>("windowsNum")) {}
@@ -247,26 +246,22 @@ void TotemT2DQMSource::analyze(const edm::Event& iEvent, const edm::EventSetup& 
   // fill digis information
   std::unordered_map<unsigned int, std::set<unsigned int>> planes;
 
-  for (const auto& ds_digis : iEvent.get(digiToken_)) {
-    if (!ds_digis.empty()) {
-      const TotemT2DetId detid(ds_digis.detId());
-      const TotemT2DetId planeId(detid.planeId());
-      for (const auto& digi : ds_digis) {
-        if (digi.hasLE()) {
-          segm_->fill(planePlots_[planeId].digisMultiplicity->getTH2D(), detid);
-          if (digi.hasTE())
-            fillTriggerBitset(detid);
-        }
-        fillErrorFlagsHistogram(digi, detid);
-        fillEdges(digi, detid);
-        fillToT(digi, detid);
-        fillFlags(digi, detid);
-        int bx = iEvent.bunchCrossing();
-        fillBX(digi, detid, bx);
-        if (digi.hasLE() && digi.hasTE())  //good digi
-          fillActivePlanes(planes, detid);
-      }
+  for (const auto& digi : iEvent.get(digiToken_)) {
+    const TotemT2DetId detid(digi.detId());
+    const TotemT2DetId planeId(detid.planeId());
+    if (digi.hasLE()) {
+      segm_->fill(planePlots_[planeId].digisMultiplicity->getTH2D(), detid);
+      if (digi.hasTE())
+        fillTriggerBitset(detid);
     }
+    fillErrorFlagsHistogram(digi, detid);
+    fillEdges(digi, detid);
+    fillToT(digi, detid);
+    fillFlags(digi, detid);
+    int bx = iEvent.bunchCrossing();
+    fillBX(digi, detid, bx);
+    if (digi.hasLE() && digi.hasTE())  // good digi
+      fillActivePlanes(planes, detid);
   }
 
   for (const auto& plt : sectorPlots_)

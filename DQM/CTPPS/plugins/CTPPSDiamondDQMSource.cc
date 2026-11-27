@@ -24,7 +24,6 @@
 #include "DataFormats/Provenance/interface/EventRange.h"
 #include "DataFormats/CTPPSDigi/interface/TotemVFATStatus.h"
 #include "DataFormats/CTPPSDigi/interface/TotemFEDInfo.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 
 #include "DataFormats/CTPPSDetId/interface/CTPPSDiamondDetId.h"
 #include "DataFormats/CTPPSDigi/interface/CTPPSDiamondDigi.h"
@@ -225,7 +224,7 @@ private:
 
   void checkEventNumber(const CTPPSDiamondDetId&, const TotemFEDInfo&, const TotemVFATStatus&, PotPlots&, int&) const;
 
-  edm::EDGetTokenT<edm::DetSetVector<TotemVFATStatus>> tokenStatus_;
+  edm::EDGetTokenT<std::vector<TotemVFATStatus>> tokenStatus_;
   edm::EDGetTokenT<std::vector<CTPPSPixelLocalTrack>> tokenPixelTrack_;
   edm::EDGetTokenT<std::vector<CTPPSDiamondDigi>> tokenDigi_;
   edm::EDGetTokenT<std::vector<CTPPSDiamondRecHit>> tokenDiamondHit_;
@@ -648,7 +647,7 @@ CTPPSDiamondDQMSource::CTPPSDiamondDQMSource(const edm::ParameterSet& ps)
       EC_difference_56_(-500),
       EC_difference_45_(-500) {
   if (extract_digi_info_) {
-    tokenStatus_ = consumes<edm::DetSetVector<TotemVFATStatus>>(ps.getUntrackedParameter<edm::InputTag>("tagStatus"));
+    tokenStatus_ = consumes<std::vector<TotemVFATStatus>>(ps.getUntrackedParameter<edm::InputTag>("tagStatus"));
     tokenFEDInfo_ = consumes<std::vector<TotemFEDInfo>>(ps.getUntrackedParameter<edm::InputTag>("tagFEDInfo"));
     tokenDigi_ = consumes<std::vector<CTPPSDiamondDigi>>(ps.getUntrackedParameter<edm::InputTag>("tagDigi"));
   }
@@ -752,7 +751,7 @@ std::shared_ptr<dds::Cache> CTPPSDiamondDQMSource::globalBeginLuminosityBlock(co
 void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSetup& iSetup) {
   // get event data
 
-  edm::Handle<edm::DetSetVector<TotemVFATStatus>> diamondVFATStatus;
+  edm::Handle<std::vector<TotemVFATStatus>> diamondVFATStatus;
   edm::Handle<std::vector<CTPPSDiamondDigi>> diamondDigis;
   edm::Handle<std::vector<TotemFEDInfo>> fedInfo;
   if (extract_digi_info_) {
@@ -928,23 +927,21 @@ void CTPPSDiamondDQMSource::analyze(const edm::Event& event, const edm::EventSet
 
   // EC Errors
   if (extract_digi_info_) {
-    for (const auto& vfat_status : *diamondVFATStatus) {
-      const CTPPSDiamondDetId detId(vfat_status.detId());
-      for (const auto& status : vfat_status) {
-        if (!status.isOK())
-          continue;
-        if (potPlots_.count(detId.rpId()) == 0)
-          continue;
-        if (channelPlots_.count(detId) == 0)
-          continue;
+    for (const auto& status : *diamondVFATStatus) {
+      const CTPPSDiamondDetId detId(status.detId());
+      if (!status.isOK())
+        continue;
+      if (potPlots_.count(detId.rpId()) == 0)
+        continue;
+      if (channelPlots_.count(detId) == 0)
+        continue;
 
-        // Check Event Number
-        for (const auto& optorx : *fedInfo) {
-          if (detId.arm() == 1 && optorx.fedId() == CTPPS_FED_ID_56)
-            checkEventNumber(detId, optorx, status, potPlots_[detId.rpId()], EC_difference_56_);
-          else if (detId.arm() == 0 && optorx.fedId() == CTPPS_FED_ID_45)
-            checkEventNumber(detId, optorx, status, potPlots_[detId.rpId()], EC_difference_45_);
-        }
+      // Check Event Number
+      for (const auto& optorx : *fedInfo) {
+        if (detId.arm() == 1 && optorx.fedId() == CTPPS_FED_ID_56)
+          checkEventNumber(detId, optorx, status, potPlots_[detId.rpId()], EC_difference_56_);
+        else if (detId.arm() == 0 && optorx.fedId() == CTPPS_FED_ID_45)
+          checkEventNumber(detId, optorx, status, potPlots_[detId.rpId()], EC_difference_45_);
       }
     }
   }

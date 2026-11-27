@@ -17,31 +17,27 @@
     <version ClassVersion="5" checksum="23733564"/>
     <version ClassVersion="6" checksum="322451591"/>
   </class>
-  <class name="edm::DetSet<io_v1::TotemRPRecHit>"/>
-  <class name="edm::DetSetVector<io_v1::TotemRPRecHit>"/>
-  <class name="std::vector<edm::DetSet<io_v1::TotemRPRecHit> >"/>
-  <class name="edm::Wrapper<edm::DetSetVector<io_v1::TotemRPRecHit> >"/>
   <class name="std::vector<io_v1::TotemRPRecHit>"/>
   <class name="edm::Wrapper<std::vector<io_v1::TotemRPRecHit> >"/>
   <class name="std::vector<const io_v1::TotemRPRecHit*>"/>
-  <class name="std::map<int, edm::DetSetVector<io_v1::TotemRPRecHit>>"/>
-  <class name="std::pair<const int, edm::DetSetVector<io_v1::TotemRPRecHit>>"/>
-  <class name="edm::Wrapper<std::map<int, edm::DetSetVector<io_v1::TotemRPRecHit>>>"/>
+  <class name="std::map<int, std::vector<io_v1::TotemRPRecHit>>"/>
+  <class name="std::pair<const int, std::vector<io_v1::TotemRPRecHit>>"/>
+  <class name="edm::Wrapper<std::map<int, std::vector<io_v1::TotemRPRecHit>>>"/>
 
-  <class name="io_v1::TotemRPUVPattern" ClassVersion="5">
+  <class name="io_v1::TotemRPUVPattern" ClassVersion="6">
     <version ClassVersion="3" checksum="2310454009"/>
     <version ClassVersion="4" checksum="1790898958"/>
     <version ClassVersion="5" checksum="1722253734"/>
+    <version ClassVersion="6" checksum="3753094817"/>
   </class>
   <class name="edm::Wrapper<std::vector<io_v1::TotemRPUVPattern> >"/>
-  <class name="edm::DetSet<io_v1::TotemRPUVPattern>"/>
   <class name="std::vector<io_v1::TotemRPUVPattern>"/>
-  <class name="std::vector<edm::DetSet<io_v1::TotemRPUVPattern> >"/>
 
-  <class name="io_v1::TotemRPLocalTrack" ClassVersion="5">
+  <class name="io_v1::TotemRPLocalTrack" ClassVersion="6">
     <version ClassVersion="3" checksum="150243101"/>
     <version ClassVersion="4" checksum="393970964"/>
     <version ClassVersion="5" checksum="1830475908"/>
+    <version ClassVersion="6" checksum="2211978049"/>
   </class>
   <class name="std::vector<io_v1::TotemRPLocalTrack>"/>
   <class name="edm::Wrapper<std::vector<io_v1::TotemRPLocalTrack> >"/>
@@ -52,9 +48,6 @@
     <version ClassVersion="5" checksum="754853334"/>
     <version ClassVersion="6" checksum="594329543"/>
   </class>
-  <class name="edm::DetSet<io_v1::TotemRPLocalTrack::FittedRecHit>"/>
-  <class name="edm::DetSetVector<io_v1::TotemRPLocalTrack::FittedRecHit>"/>
-  <class name="std::vector<edm::DetSet<io_v1::TotemRPLocalTrack::FittedRecHit> >"/>
   <class name="std::vector<io_v1::TotemRPLocalTrack::FittedRecHit>"/>
 
 <!-- timing objects -->
@@ -85,6 +78,9 @@
   <class name="edm::Wrapper<io_v1::CTPPSDiamondRecHit>"/>
   <class name="std::vector<io_v1::CTPPSDiamondRecHit>"/>
   <class name="edm::Wrapper<std::vector<io_v1::CTPPSDiamondRecHit> >"/>
+  <class name="std::map<int, std::vector<io_v1::CTPPSDiamondRecHit>>"/>
+  <class name="std::pair<const int, std::vector<io_v1::CTPPSDiamondRecHit>>"/>
+  <class name="edm::Wrapper<std::map<int, std::vector<io_v1::CTPPSDiamondRecHit>>>"/>
 
   <class name="io_v1::CTPPSTimingLocalTrack" ClassVersion="4">
     <version ClassVersion="3" checksum="3045501838"/>
@@ -129,6 +125,9 @@
   </class>
   <class name="std::vector<io_v1::CTPPSPixelRecHit>"/>
   <class name="edm::Wrapper<std::vector<io_v1::CTPPSPixelRecHit> >"/>
+  <class name="std::map<int, std::vector<io_v1::CTPPSPixelRecHit>>"/>
+  <class name="std::pair<const int, std::vector<io_v1::CTPPSPixelRecHit>>"/>
+  <class name="edm::Wrapper<std::map<int, std::vector<io_v1::CTPPSPixelRecHit>>>"/>
 
   <class name="io_v1::CTPPSPixelLocalTrack" ClassVersion="4">
     <version ClassVersion="3" checksum="812170731"/>

@@ -147,7 +147,7 @@ TotemVFATRawToDigi::TotemVFATRawToDigi(const edm::ParameterSet &conf)
   });
 
   // conversion status
-  produces<DetSetVector<TotemVFATStatus>>(subSystemName);
+  produces<vector<TotemVFATStatus>>(subSystemName);
 
   totemMappingToken = esConsumes<TotemDAQMapping, TotemReadoutRcd>(ESInputTag("", subSystemName));
   analysisMaskToken = esConsumes<TotemAnalysisMask, TotemAnalysisMaskRcd>(ESInputTag("", subSystemName));
@@ -183,7 +183,7 @@ void TotemVFATRawToDigi::run(edm::Event &event, const edm::EventSetup &es) {
   // book output products
   vector<TotemFEDInfo> fedInfo;
   DigiType digi;
-  DetSetVector<TotemVFATStatus> conversionStatus;
+  vector<TotemVFATStatus> conversionStatus;
 
   // raw-data unpacking
   bool data_exist = false;
@@ -221,7 +221,7 @@ void TotemVFATRawToDigi::run(edm::Event &event, const edm::EventSetup &es) {
   // commit products to event
   event.put(make_unique<vector<TotemFEDInfo>>(fedInfo), subSystemName);
   event.put(make_unique<DigiType>(digi), subSystemName);
-  event.put(make_unique<DetSetVector<TotemVFATStatus>>(conversionStatus), subSystemName);
+  event.put(make_unique<vector<TotemVFATStatus>>(std::move(conversionStatus)), subSystemName);
 }
 
 void TotemVFATRawToDigi::endStream() {

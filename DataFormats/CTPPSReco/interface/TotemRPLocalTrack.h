@@ -12,9 +12,10 @@
 
 #include <cstdint>
 
-#include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/CTPPSDetId/interface/CTPPSDetId.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPRecHit.h"
+
+#include <vector>
 
 #include "TVector3.h"
 #include "TMatrixD.h"
@@ -79,10 +80,8 @@ namespace io_v1 {
     inline void setDetId(CTPPSDetId detid) { detid_ = detid.rawId(); }
     inline CTPPSDetId detId() const { return CTPPSDetId(detid_); }
 
-    inline const edm::DetSetVector<FittedRecHit> &hits() const { return track_hits_vector_; }
-    inline void addHit(unsigned int detId, const FittedRecHit &hit) {
-      track_hits_vector_.find_or_insert(detId).push_back(hit);
-    }
+    inline const std::vector<FittedRecHit> &hits() const { return track_hits_vector_; }
+    inline void addHit(const FittedRecHit &hit) { track_hits_vector_.push_back(hit); }
 
     inline double x0() const { return track_params_vector_[0]; }
     inline double x0Sigma() const { return sqrt(CovarianceMatrixElement(0, 0)); }
@@ -146,7 +145,7 @@ namespace io_v1 {
 
     inline double &CovarianceMatrixElement(int i, int j) { return par_covariance_matrix_[i * dimension + j]; }
 
-    edm::DetSetVector<FittedRecHit> track_hits_vector_;
+    std::vector<FittedRecHit> track_hits_vector_;
 
     /// track parameters: (x0, y0, tx, ty); x = x0 + tx*(z-z0) ...
     double track_params_vector_[dimension];

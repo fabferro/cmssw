@@ -12,7 +12,6 @@
 #define EventFilter_CTPPSRawToDigi_RawToDigiConverter
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 
 #include "EventFilter/CTPPSRawToDigi/interface/VFATFrameCollection.h"
 
@@ -35,28 +34,28 @@ public:
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
            std::vector<TotemRPDigi> &digi,
-           edm::DetSetVector<TotemVFATStatus> &status);
+           std::vector<TotemVFATStatus> &status);
 
   /// Creates Diamond digi.
   void run(const VFATFrameCollection &coll,
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
            std::vector<CTPPSDiamondDigi> &digi,
-           edm::DetSetVector<TotemVFATStatus> &status);
+           std::vector<TotemVFATStatus> &status);
 
   /// Creates Totem Timing digi.
   void run(const VFATFrameCollection &coll,
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
            std::vector<TotemTimingDigi> &digi,
-           edm::DetSetVector<TotemVFATStatus> &status);
+           std::vector<TotemVFATStatus> &status);
 
   /// Creates Totem T2 digi
   void run(const VFATFrameCollection &coll,
            const TotemDAQMapping &mapping,
            const TotemAnalysisMask &mask,
            std::vector<TotemT2Digi> &digi,
-           edm::DetSetVector<TotemVFATStatus> &status);
+           std::vector<TotemVFATStatus> &status);
 
   /// Print error summaries.
   void printSummaries() const;

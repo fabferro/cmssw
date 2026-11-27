@@ -16,7 +16,6 @@
 #include "DataFormats/CTPPSReco/interface/CTPPSDiamondLocalTrack.h"
 #include "DataFormats/CTPPSReco/interface/CTPPSPixelLocalTrack.h"
 #include "DataFormats/CTPPSReco/interface/TotemRPLocalTrack.h"
-#include "DataFormats/Common/interface/DetSetVector.h"
 
 #include "DataFormats/CTPPSReco/interface/CTPPSLocalTrackLite.h"
 #include "DataFormats/CTPPSReco/interface/CTPPSLocalTrackLiteFwd.h"

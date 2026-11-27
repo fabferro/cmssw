@@ -66,8 +66,8 @@ process.load("RecoPPS.Configuration.recoCTPPS_cff")
 process.o1 = cms.OutputModule("PoolOutputModule",
         outputCommands = cms.untracked.vstring('drop *',
                                                'keep std::vector<io_v1::CTPPSPixelCluster>_ctppsPixelClusters_*_*',
-                                               'keep CTPPSPixelRecHitedmDetSetVector_ctppsPixelRecHits_*_*',
-                                               'keep CTPPSPixelLocalTrackedmDetSetVector_ctppsPixelLocalTracks_*_*',
+                                               'keep CTPPSPixelRecHit_ctppsPixelRecHits_*_*',
+                                               'keep CTPPSPixelLocalTrack_ctppsPixelLocalTracks_*_*',
  'keep CTPPSLocalTrackLites_ctppsLocalTrackLiteProducer_*_*'
         ),
         fileName = cms.untracked.string("RPix_RecoLocalTrack.root")

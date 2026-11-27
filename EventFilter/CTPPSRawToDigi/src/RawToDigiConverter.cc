@@ -191,7 +191,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &input,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &analysisMask,
                              std::vector<TotemRPDigi> &rpData,
-                             DetSetVector<TotemVFATStatus> &finalStatus) {
+                             std::vector<TotemVFATStatus> &finalStatus) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
 
@@ -206,6 +206,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &input,
     TotemRPDetId chipId(record.info->symbolicID.symbolicID);
     uint8_t chipPosition = chipId.chip();
     TotemRPDetId detId = chipId.planeId();
+    record.status.setDetId(detId.rawId());
 
     // update chipPosition in status
     record.status.setChipPosition(chipPosition);
@@ -239,8 +240,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &input,
     }
 
     // save status
-    DetSet<TotemVFATStatus> &statusDetSet = finalStatus.find_or_insert(detId);
-    statusDetSet.push_back(record.status);
+    finalStatus.push_back(record.status);
   }
 }
 
@@ -248,7 +248,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &mask,
                              std::vector<CTPPSDiamondDigi> &digi,
-                             edm::DetSetVector<TotemVFATStatus> &status) {
+                             std::vector<TotemVFATStatus> &status) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
 
@@ -261,6 +261,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
 
     // calculate ids
     CTPPSDiamondDetId detId(record.info->symbolicID.symbolicID);
+    record.status.setDetId(detId.rawId());
 
     if (record.status.isOK()) {
       // update Event Counter in status
@@ -276,8 +277,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
     }
 
     // save status
-    DetSet<TotemVFATStatus> &statusDetSet = status.find_or_insert(detId);
-    statusDetSet.push_back(record.status);
+    status.push_back(record.status);
   }
 }
 
@@ -285,7 +285,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &mask,
                              std::vector<TotemTimingDigi> &digi,
-                             edm::DetSetVector<TotemVFATStatus> &status) {
+                             std::vector<TotemVFATStatus> &status) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
 
@@ -393,7 +393,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
                              const TotemDAQMapping &mapping,
                              const TotemAnalysisMask &mask,
                              std::vector<TotemT2Digi> &digi,
-                             edm::DetSetVector<TotemVFATStatus> &status) {
+                             std::vector<TotemVFATStatus> &status) {
   // structure merging vfat frame data with the mapping
   map<TotemFramePosition, Record> records;
 
@@ -412,6 +412,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
     allT2++;
     // calculate ids
     TotemT2DetId detId(record.info->symbolicID.symbolicID);
+    record.status.setDetId(detId.rawId());
 
     if (record.status.isOK()) {
       // update Event Counter in status
@@ -457,8 +458,7 @@ void RawToDigiConverter::run(const VFATFrameCollection &coll,
     }
 
     // save status
-    DetSet<TotemVFATStatus> &statusDetSet = status.find_or_insert(detId);
-    statusDetSet.push_back(record.status);
+    status.push_back(record.status);
   }
   if (verbosity > 1)
     LogWarning("Totem") << "RawToDigiConverter:: VFAT frames per event, total/good/matched the xml mapping"
